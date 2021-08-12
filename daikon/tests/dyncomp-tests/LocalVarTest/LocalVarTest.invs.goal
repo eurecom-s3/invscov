@@ -1,0 +1,51 @@
+===========================================================================
+..foo():::ENTER
+::globalE[] == e[]
+::globalD == 40
+::globalE has only one value
+::globalE[] == [1, 2, 3, 4]
+a has only one value
+a[] == [10]
+b has only one value
+b[] == [20]
+c has only one value
+c[] == [30]
+d has only one value
+d[] == [40]
+e has only one value
+===========================================================================
+..foo():::EXIT
+::globalD == orig(::globalD)
+::globalE == orig(::globalE)
+::globalE[] == e[]
+::globalE[] == orig(::globalE[])
+::globalE[] == orig(e[])
+a[] == orig(a[])
+b[] == orig(b[])
+c[] == orig(c[])
+d[] == orig(d[])
+::globalD == 40
+::globalE has only one value
+::globalE[] == [1, 2, 3, 4]
+a[] == [10]
+b[] == [20]
+c[] == [30]
+d[] == [40]
+===========================================================================
+..main():::ENTER
+::globalD == 40
+::globalE has only one value
+::globalE[] == [1, 2, 3, 4]
+argc == 1
+argv has only one value
+argv[] == [./LocalVarTest]
+===========================================================================
+..main():::EXIT
+::globalD == orig(::globalD)
+::globalE == orig(::globalE)
+::globalE[] == orig(::globalE[])
+::globalD == 40
+::globalE has only one value
+::globalE[] == [1, 2, 3, 4]
+argv[] == [./LocalVarTest]
+return == 0

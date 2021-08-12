@@ -1,0 +1,9 @@
+..logicalAnd16() ENTER/9: 1 EXIT0/9: 1
+..logicalAnd32() ENTER/9: 1 EXIT0/9: 1
+..logicalAnd64() ENTER/9: 1 EXIT0/9: 1
+..logicalAnd8() ENTER/9: 1 EXIT0/9: 1
+..logicalOr16() ENTER/9: 1 EXIT0/9: 1
+..logicalOr32() ENTER/9: 1 EXIT0/9: 1
+..logicalOr64() ENTER/9: 1 EXIT0/9: 1
+..logicalOr8() ENTER/9: 1 EXIT0/9: 1
+..main() ENTER/3: 1 EXIT0/6: 1

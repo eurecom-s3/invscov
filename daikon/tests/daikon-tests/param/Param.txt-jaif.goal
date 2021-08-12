@@ -1,0 +1,33 @@
+package org.checkerframework.checker.nullness.qual:
+annotation @Nullable:
+annotation @NonNull:
+
+package misc:
+class Param : // 203/- obj/class samples
+  field gi1 :  // int
+  field gi2 :  // int
+  field gs1 :  // misc.ParamType
+  field gs2 :  // misc.ParamType
+  method main([Ljava/lang/String;)V : // 1 samples
+    return: 
+    parameter #0 :  // args
+  method <init>()V : // 1 samples
+    return: 
+  method main()V : // 1 samples
+    return: 
+  method work(IILmisc/ParamType;Lmisc/ParamType;)V : // 100 samples
+    return: 
+    parameter #0 :  // pi1
+    parameter #1 :  // pi2
+    parameter #2 :  // ps1
+    parameter #3 :  // ps2
+
+
+package misc:
+class ParamType : // 102/- obj/class samples
+  field a :  // int
+  field b :  // int
+  method <init>()V : // 102 samples
+    return: 
+
+

@@ -1,0 +1,270 @@
+===========================================================================
+MapQuick1.GeoPoint:::CLASS
+===========================================================================
+MapQuick1.GeoPoint:::OBJECT
+this.latitude is a pointer
+this.longitude is a pointer
+this.latitude > this.longitude
+===========================================================================
+MapQuick1.GeoPoint.GeoPoint(int, int):::ENTER
+latitude is a pointer
+longitude is a pointer
+latitude > longitude
+===========================================================================
+MapQuick1.GeoPoint.GeoPoint(int, int):::EXIT
+this.latitude == orig(latitude)
+this.longitude == orig(longitude)
+===========================================================================
+MapQuick1.GeoPoint.distanceTo(MapQuick1.GeoPoint):::ENTER
+gp != null
+gp.latitude is a pointer
+gp.longitude is a pointer
+this.latitude > gp.longitude
+this.longitude < gp.latitude
+gp.latitude > gp.longitude
+===========================================================================
+MapQuick1.GeoPoint.distanceTo(MapQuick1.GeoPoint):::EXIT
+this.latitude == orig(this.latitude)
+this.longitude == orig(this.longitude)
+gp.latitude == orig(gp.latitude)
+gp.longitude == orig(gp.longitude)
+gp.latitude is a pointer
+gp.longitude is a pointer
+this.latitude > gp.longitude
+this.longitude < gp.latitude
+gp.latitude > gp.longitude
+===========================================================================
+MapQuick1.GeoPoint.equals(java.lang.Object):::ENTER
+o != null
+o.getClass().getName() == MapQuick1.GeoPoint.class
+===========================================================================
+MapQuick1.GeoPoint.equals(java.lang.Object):::EXIT69
+===========================================================================
+MapQuick1.GeoPoint.equals(java.lang.Object):::EXIT69;condition="return == true"
+===========================================================================
+MapQuick1.GeoPoint.equals(java.lang.Object):::EXIT69;condition="not(return == true)"
+===========================================================================
+MapQuick1.GeoPoint.equals(java.lang.Object):::EXIT
+this.latitude == orig(this.latitude)
+this.longitude == orig(this.longitude)
+===========================================================================
+MapQuick1.GeoPoint.equals(java.lang.Object):::EXIT;condition="return == true"
+return == true
+===========================================================================
+MapQuick1.GeoPoint.equals(java.lang.Object):::EXIT;condition="not(return == true)"
+return == false
+===========================================================================
+MapQuick1.GeoPoint.hashCode():::ENTER
+===========================================================================
+MapQuick1.GeoPoint.hashCode():::EXIT
+this.latitude == orig(this.latitude)
+this.longitude == orig(this.longitude)
+return is a pointer
+===========================================================================
+MapQuick1.GeoPoint.headingTo(MapQuick1.GeoPoint):::ENTER
+gp != null
+gp.latitude is a pointer
+gp.longitude is a pointer
+this.latitude != gp.latitude
+this.latitude > gp.longitude
+this.longitude < gp.latitude
+this.longitude != gp.longitude
+gp.latitude > gp.longitude
+===========================================================================
+MapQuick1.GeoPoint.headingTo(MapQuick1.GeoPoint):::EXIT
+this.latitude == orig(this.latitude)
+this.longitude == orig(this.longitude)
+gp.latitude == orig(gp.latitude)
+gp.longitude == orig(gp.longitude)
+gp.latitude is a pointer
+gp.longitude is a pointer
+this.latitude != gp.latitude
+this.latitude > gp.longitude
+this.longitude < gp.latitude
+this.longitude != gp.longitude
+gp.latitude > gp.longitude
+===========================================================================
+MapQuick1.GeoSegment:::OBJECT
+this.name != null
+this.name.toString is printable
+this.p1 != null
+this.p1.latitude is a pointer
+this.p1.longitude is a pointer
+this.p2 != null
+this.p2.latitude is a pointer
+this.p2.longitude is a pointer
+this.p1.latitude > this.p1.longitude
+this.p1.latitude > this.p2.longitude
+this.p1.longitude < this.p2.latitude
+this.p2.latitude > this.p2.longitude
+===========================================================================
+MapQuick1.GeoSegment.GeoSegment(java.lang.String, MapQuick1.GeoPoint, MapQuick1.GeoPoint):::ENTER
+name != null
+name.toString is printable
+p1 != null
+p1.latitude is a pointer
+p1.longitude is a pointer
+p2 != null
+p2.latitude is a pointer
+p2.longitude is a pointer
+p1.latitude > p1.longitude
+p1.latitude > p2.longitude
+p1.longitude < p2.latitude
+p2.latitude > p2.longitude
+===========================================================================
+MapQuick1.GeoSegment.GeoSegment(java.lang.String, MapQuick1.GeoPoint, MapQuick1.GeoPoint):::EXIT
+this.name == orig(name)
+this.p1 == orig(p1)
+this.p1.latitude == p1.latitude
+this.p1.longitude == p1.longitude
+this.p2 == orig(p2)
+this.p2.latitude == p2.latitude
+this.p2.longitude == p2.longitude
+name.toString == orig(name.toString)
+p1.latitude == orig(p1.latitude)
+p1.longitude == orig(p1.longitude)
+p2.latitude == orig(p2.latitude)
+p2.longitude == orig(p2.longitude)
+name.toString is printable
+p1.latitude is a pointer
+p1.longitude is a pointer
+p2.latitude is a pointer
+p2.longitude is a pointer
+p1.latitude > p1.longitude
+p1.latitude > p2.longitude
+p1.longitude < p2.latitude
+p2.latitude > p2.longitude
+===========================================================================
+MapQuick1.GeoSegment.equals(java.lang.Object):::ENTER
+o != null
+o.getClass().getName() == MapQuick1.GeoSegment.class
+this.p1.latitude != this.p2.latitude
+this.p1.longitude != this.p2.longitude
+===========================================================================
+MapQuick1.GeoSegment.equals(java.lang.Object):::EXIT135
+===========================================================================
+MapQuick1.GeoSegment.equals(java.lang.Object):::EXIT135;condition="not(return == true)"
+===========================================================================
+MapQuick1.GeoSegment.equals(java.lang.Object):::EXIT
+this.name == orig(this.name)
+this.name.toString == orig(this.name.toString)
+this.p1 == orig(this.p1)
+this.p1.latitude == orig(this.p1.latitude)
+this.p1.longitude == orig(this.p1.longitude)
+this.p2 == orig(this.p2)
+this.p2.latitude == orig(this.p2.latitude)
+this.p2.longitude == orig(this.p2.longitude)
+return == false
+this.p1.latitude != this.p2.latitude
+this.p1.longitude != this.p2.longitude
+===========================================================================
+MapQuick1.GeoSegment.equals(java.lang.Object):::EXIT;condition="not(return == true)"
+===========================================================================
+MapQuick1.GeoSegment.hashCode():::ENTER
+===========================================================================
+MapQuick1.GeoSegment.hashCode():::EXIT
+this.name == orig(this.name)
+this.name.toString == orig(this.name.toString)
+this.p1 == orig(this.p1)
+this.p1.latitude == orig(this.p1.latitude)
+this.p1.longitude == orig(this.p1.longitude)
+this.p2 == orig(this.p2)
+this.p2.latitude == orig(this.p2.latitude)
+this.p2.longitude == orig(this.p2.longitude)
+return != 0
+return is a pointer
+===========================================================================
+MapQuick1.GeoSegment.heading():::ENTER
+this.p1.latitude != this.p2.latitude
+this.p1.longitude != this.p2.longitude
+===========================================================================
+MapQuick1.GeoSegment.heading():::EXIT
+this.name == orig(this.name)
+this.name.toString == orig(this.name.toString)
+this.p1 == orig(this.p1)
+this.p1.latitude == orig(this.p1.latitude)
+this.p1.longitude == orig(this.p1.longitude)
+this.p2 == orig(this.p2)
+this.p2.latitude == orig(this.p2.latitude)
+this.p2.longitude == orig(this.p2.longitude)
+this.p1.latitude != this.p2.latitude
+this.p1.longitude != this.p2.longitude
+===========================================================================
+MapQuick1.GeoSegment.length():::ENTER
+this.p1.longitude != this.p2.longitude
+===========================================================================
+MapQuick1.GeoSegment.length():::EXIT
+this.name == orig(this.name)
+this.name.toString == orig(this.name.toString)
+this.p1 == orig(this.p1)
+this.p1.latitude == orig(this.p1.latitude)
+this.p1.longitude == orig(this.p1.longitude)
+this.p2 == orig(this.p2)
+this.p2.latitude == orig(this.p2.latitude)
+this.p2.longitude == orig(this.p2.longitude)
+this.p1.longitude != this.p2.longitude
+===========================================================================
+MapQuick1.GeoSegment.name():::ENTER
+this.p1.latitude != this.p2.latitude
+this.p1.longitude != this.p2.longitude
+===========================================================================
+MapQuick1.GeoSegment.name():::EXIT
+this.name == return
+this.name.toString == orig(this.name.toString)
+this.p1 == orig(this.p1)
+this.p1.latitude == orig(this.p1.latitude)
+this.p1.longitude == orig(this.p1.longitude)
+this.p2 == orig(this.p2)
+this.p2.latitude == orig(this.p2.latitude)
+this.p2.longitude == orig(this.p2.longitude)
+return == orig(this.name)
+return != null
+return.toString is printable
+this.p1.latitude != this.p2.latitude
+this.p1.longitude != this.p2.longitude
+===========================================================================
+MapQuick1.GeoSegment.p1():::ENTER
+this.p1.latitude != this.p2.latitude
+this.p1.longitude != this.p2.longitude
+===========================================================================
+MapQuick1.GeoSegment.p1():::EXIT
+this.name == orig(this.name)
+this.name.toString == orig(this.name.toString)
+this.p1 == return
+this.p1.latitude == return.latitude
+this.p1.longitude == return.longitude
+this.p2 == orig(this.p2)
+this.p2.latitude == orig(this.p2.latitude)
+this.p2.longitude == orig(this.p2.longitude)
+return == orig(this.p1)
+return.latitude == orig(this.p1.latitude)
+return.longitude == orig(this.p1.longitude)
+return != null
+return.latitude is a pointer
+return.longitude is a pointer
+this.p2.latitude != return.latitude
+this.p2.latitude > return.longitude
+this.p2.longitude < return.latitude
+this.p2.longitude != return.longitude
+return.latitude > return.longitude
+===========================================================================
+MapQuick1.GeoSegment.p2():::ENTER
+===========================================================================
+MapQuick1.GeoSegment.p2():::EXIT
+this.name == orig(this.name)
+this.name.toString == orig(this.name.toString)
+this.p1 == orig(this.p1)
+this.p1.latitude == orig(this.p1.latitude)
+this.p1.longitude == orig(this.p1.longitude)
+this.p2 == return
+this.p2.latitude == return.latitude
+this.p2.longitude == return.longitude
+return == orig(this.p2)
+return.latitude == orig(this.p2.latitude)
+return.longitude == orig(this.p2.longitude)
+return != null
+return.latitude is a pointer
+return.longitude is a pointer
+this.p1.latitude > return.longitude
+this.p1.longitude < return.latitude
+return.latitude > return.longitude

@@ -1,0 +1,219 @@
+===========================================================================
+..addstr():::ENTER
+    Variables: c outset j j[] maxset size(j[]) size(j[])-1 j[c] j[c-1] j[c..] j[c+1..] j[0..c] j[0..c-1] j[maxset] j[maxset-1] j[maxset..] j[maxset+1..] j[0..maxset] j[0..maxset-1]
+maxset == 100
+daikon.Quant.size(j) == 1
+c < maxset
+c != daikon.Quant.size(j)
+c >= daikon.Quant.size(j)-1
+daikon.Quant.eltsLT(j, maxset)
+daikon.Quant.eltsGTE(j, daikon.Quant.size(j)-1)
+===========================================================================
+..addstr():::EXIT
+    Variables: c outset j j[] maxset return orig(c) orig(outset) orig(j) orig(j[]) orig(maxset) size(j[]) size(j[])-1 orig(size(j[])) orig(size(j[]))-1 j[c] j[c-1] j[c..] j[c+1..] j[0..c] j[0..c-1] orig(j[post(c)]) orig(j[post(c)-1]) orig(j[post(c)..]) orig(j[post(c)+1..]) orig(j[0..post(c)]) orig(j[0..post(c)-1]) j[maxset] j[maxset-1] j[maxset..] j[maxset+1..] j[0..maxset] j[0..maxset-1] j[return] j[return-1] j[return..] j[return+1..] j[0..return] j[0..return-1] j[orig(c)] j[orig(c)-1] j[orig(c)..] j[orig(c)+1..] j[0..orig(c)] j[0..orig(c)-1] j[orig(maxset)] j[orig(maxset)-1] j[orig(maxset)..] j[orig(maxset)+1..] j[0..orig(maxset)] j[0..orig(maxset)-1] orig(j[post(maxset)]) orig(j[post(maxset)-1]) orig(j[post(maxset)..]) orig(j[post(maxset)+1..]) orig(j[0..post(maxset)]) orig(j[0..post(maxset)-1]) orig(j[post(return)]) orig(j[post(return)-1]) orig(j[post(return)..]) orig(j[post(return)+1..]) orig(j[0..post(return)]) orig(j[0..post(return)-1]) orig(j[c]) orig(j[c-1]) orig(j[c..]) orig(j[c+1..]) orig(j[0..c]) orig(j[0..c-1]) orig(j[maxset]) orig(j[maxset-1]) orig(j[maxset..]) orig(j[maxset+1..]) orig(j[0..maxset]) orig(j[0..maxset-1])
+assignable j[*]
+return == \old(daikon.Quant.size(j))
+return == 1
+("oneOf.java.jpp: SEQUENCE unimplemented" != null)
+daikon.Quant.eltsGTE(j, return)
+warning: method daikon.inv.binary.twoSequence.PairwiseLinearBinary.format(OutputFormat:JML) needs to be implemented: j[] - orig(j[]) - 1 == 0
+daikon.Quant.eltsLT(j, \old(maxset))
+daikon.Quant.eltsEqual(j, daikon.Quant.getElement_int(j, return-1))
+daikon.Quant.eltsGT(j, \old(daikon.Quant.getElement_int(j, \new(return)-1)))
+return != \old(c)
+return <= daikon.Quant.getElement_int(j, return-1)
+\old(c) >= daikon.Quant.size(j)-1
+\old(c) != daikon.Quant.getElement_int(j, return-1)
+\old(c) != \old(daikon.Quant.getElement_int(j, \new(return)-1))
+daikon.Quant.eltsGTE(\old(j), daikon.Quant.size(j)-1)
+daikon.Quant.eltsLT(\old(j), daikon.Quant.getElement_int(j, return-1))
+daikon.Quant.eltsEqual(\old(j), \old(daikon.Quant.getElement_int(j, \new(return)-1)))
+\old(maxset) > daikon.Quant.getElement_int(j, return-1)
+\old(maxset) > \old(daikon.Quant.getElement_int(j, \new(return)-1))
+daikon.Quant.size(j)-1 <= \old(daikon.Quant.getElement_int(j, \new(return)-1))
+daikon.Quant.getElement_int(j, return-1) - \old(daikon.Quant.getElement_int(j, \new(return)-1)) - 1 == 0
+return == (org.plumelib.util.MathPlume.gcd(daikon.Quant.getElement_int(j, return-1), \old(daikon.Quant.getElement_int(j, \new(return)-1))))
+===========================================================================
+..amatch():::ENTER
+    Variables: lin offset pat j
+lin.equals("UW=Fq9MPD@sF6X@g|76zA\":NFc_4vtv%>/L>/W\n") || lin.equals("j+X+RpIPzC8;tLH#@;j+X+RpIPzC8;tLH#@;\n")
+offset >= 0
+pat.equals("cX")
+j == 0
+!lin.equals(pat)
+offset >= j
+===========================================================================
+..amatch():::EXIT
+    Variables: lin offset pat j return orig(lin) orig(offset) orig(pat) orig(j)
+return != 0
+return >= -1
+return != \old(offset)
+return != \old(j)
+===========================================================================
+..change():::ENTER
+    Variables: pat sub
+pat.equals("cX")
+sub.equals("NEW")
+===========================================================================
+..change():::EXIT
+    Variables: pat sub orig(pat) orig(sub)
+===========================================================================
+..esc():::ENTER
+    Variables: s i i[] size(i[]) size(i[])-1
+s.equals("NEW") || s.equals("X")
+warning: method daikon.inv.unary.string.PrintableString.format(OutputFormat:JML) needs to be implemented: s is printable
+daikon.Quant.subsetOf(i, new long[] { 0, 1, 2 })
+("oneOf.java.jpp: SEQUENCE unimplemented" != null)
+daikon.Quant.size(i) == 1
+===========================================================================
+..esc():::EXIT
+    Variables: s i i[] return orig(s) orig(i) orig(i[]) size(i[]) size(i[])-1 orig(size(i[])) orig(size(i[]))-1 i[return] i[return-1] i[return..] i[return+1..] i[0..return] i[0..return-1] orig(i[post(return)]) orig(i[post(return)-1]) orig(i[post(return)..]) orig(i[post(return)+1..]) orig(i[0..post(return)]) orig(i[0..post(return)-1])
+daikon.Quant.pairwiseEqual(i, \old(i))
+daikon.Quant.subsetOf(i, new long[] { 0, 1, 2 })
+("oneOf.java.jpp: SEQUENCE unimplemented" != null)
+===========================================================================
+..getpat():::ENTER
+    Variables: arg pat
+arg.equals("X")
+===========================================================================
+..getpat():::EXIT
+    Variables: arg pat return orig(arg) orig(pat)
+return == 1
+===========================================================================
+..getsub():::ENTER
+    Variables: arg sub
+arg.equals("NEW")
+===========================================================================
+..getsub():::EXIT
+    Variables: arg sub return orig(arg) orig(sub)
+return == 1
+===========================================================================
+..in_pat_set():::ENTER
+    Variables: c
+c == 99
+===========================================================================
+..in_pat_set():::EXIT
+    Variables: c return orig(c)
+return == 1
+===========================================================================
+..main():::ENTER
+    Variables: argc argv argv[] size(argv[]) size(argv[])-1
+argc == 3
+argv != null
+daikon.Quant.pairwiseEqual(argv, new String[] { "./replace" })
+daikon.Quant.eltsEqual(argv, "./replace")
+daikon.Quant.size(argv) == 1
+===========================================================================
+..main():::EXIT
+    Variables: argc argv argv[] return orig(argc) orig(argv) orig(argv[]) size(argv[]) size(argv[])-1 orig(size(argv[])) orig(size(argv[]))-1
+return == daikon.Quant.size(argv)-1
+return == \old(daikon.Quant.size(argv))-1
+daikon.Quant.pairwiseEqual(argv, new String[] { "./replace" })
+daikon.Quant.eltsEqual(argv, "./replace")
+===========================================================================
+..makepat():::ENTER
+    Variables: arg start delim pat
+start == delim
+arg.equals("X")
+start == 0
+===========================================================================
+..makepat():::EXIT
+    Variables: arg start delim pat return orig(arg) orig(start) orig(delim) orig(pat)
+return == 1
+===========================================================================
+..makesub():::ENTER
+    Variables: arg from delim sub
+from == delim
+arg.equals("NEW")
+from == 0
+===========================================================================
+..makesub():::EXIT
+    Variables: arg from delim sub return orig(arg) orig(from) orig(delim) orig(sub)
+return == 3
+===========================================================================
+..my_getline():::ENTER
+    Variables: s maxsize
+s.equals("UW=Fq9MPD@sF6X@g|76zA\":NFc_4vtv%>/L>/W\n") || s.equals("j+X+RpIPzC8;tLH#@;j+X+RpIPzC8;tLH#@;\n")
+maxsize == 100
+===========================================================================
+..my_getline():::EXIT
+    Variables: s maxsize return orig(s) orig(maxsize)
+return == 0 || return == 1
+===========================================================================
+..omatch():::ENTER
+    Variables: lin i i[] pat j size(i[]) size(i[])-1 i[j] i[j-1] i[j..] i[j+1..] i[0..j] i[0..j-1]
+j == daikon.Quant.size(i)-1
+lin.equals("UW=Fq9MPD@sF6X@g|76zA\":NFc_4vtv%>/L>/W\n") || lin.equals("j+X+RpIPzC8;tLH#@;j+X+RpIPzC8;tLH#@;\n")
+i != null
+i != null
+daikon.Quant.eltsGteIndex(i)
+pat.equals("cX")
+daikon.Quant.size(i) == 1
+("oneOf.java.jpp: SEQUENCE unimplemented" != null)
+!lin.equals(pat)
+daikon.Quant.eltsGTE(i, j)
+daikon.Quant.eltsEqual(i, daikon.Quant.getElement_int(i, j))
+j <= daikon.Quant.getElement_int(i, j)
+===========================================================================
+..omatch():::EXIT
+    Variables: lin i i[] pat j return orig(lin) orig(i) orig(i[]) orig(pat) orig(j) size(i[]) size(i[])-1 orig(size(i[])) orig(size(i[]))-1 i[j] i[j-1] i[j..] i[j+1..] i[0..j] i[0..j-1] i[return] i[return-1] i[return..] i[return+1..] i[0..return] i[0..return-1] i[orig(j)] i[orig(j)-1] i[orig(j)..] i[orig(j)+1..] i[0..orig(j)] i[0..orig(j)-1] orig(i[post(j)]) orig(i[post(j)-1]) orig(i[post(j)..]) orig(i[post(j)+1..]) orig(i[0..post(j)]) orig(i[0..post(j)-1]) orig(i[post(return)]) orig(i[post(return)-1]) orig(i[post(return)..]) orig(i[post(return)+1..]) orig(i[0..post(return)]) orig(i[0..post(return)-1]) orig(i[j]) orig(i[j-1]) orig(i[j..]) orig(i[j+1..]) orig(i[0..j]) orig(i[0..j-1])
+assignable i[*]
+\old(j) == daikon.Quant.size(i)-1
+daikon.Quant.pairwiseEqual(daikon.Quant.slice(i, return, daikon.Quant.size(i)), \old(daikon.Quant.slice(i, \new(return), daikon.Quant.size(i))))
+daikon.Quant.eltsGteIndex(i)
+return == 0 || return == 1
+daikon.Quant.subsetOf(daikon.Quant.slice(i, 0, return-1), new long[] { 3, 14, 21 })
+("oneOf.java.jpp: SEQUENCE unimplemented" != null)
+daikon.Quant.subsetOf(\old(daikon.Quant.slice(i, 0, \new(return)-1)), new long[] { 2, 13, 20 })
+daikon.Quant.eltsGTE(i, return)
+daikon.Quant.eltsGTE(i, \old(j))
+daikon.Quant.eltsEqual(i, daikon.Quant.getElement_int(i, \old(j)))
+daikon.Quant.eltsGTE(i, \old(daikon.Quant.getElement_int(i, j)))
+daikon.Quant.eltsGTE(\old(i), return)
+return >= \old(j)
+return <= \old(daikon.Quant.size(i))
+daikon.Quant.eltsGT(daikon.Quant.slice(i, 0, return-1), return)
+(!(daikon.Quant.getElement_int(i, \old(j)) == 0)) || (return == 0)
+return <= daikon.Quant.getElement_int(i, \old(j))
+daikon.Quant.eltsGT(\old(daikon.Quant.slice(i, 0, \new(return)-1)), return)
+(!(\old(daikon.Quant.getElement_int(i, j)) == 0)) || (return == 0)
+return <= \old(daikon.Quant.getElement_int(i, j))
+daikon.Quant.eltsLTE(\old(i), daikon.Quant.getElement_int(i, \old(j)))
+\old(j) <= daikon.Quant.getElement_int(i, \old(j))
+daikon.Quant.eltsGT(daikon.Quant.slice(i, 0, return-1), \old(daikon.Quant.size(i)))
+daikon.Quant.eltsGT(\old(daikon.Quant.slice(i, 0, \new(return)-1)), \old(daikon.Quant.size(i)))
+daikon.Quant.eltsGT(daikon.Quant.slice(i, 0, return-1), \old(daikon.Quant.getElement_int(i, j)))
+daikon.Quant.eltsLT(\old(daikon.Quant.slice(i, 0, \new(return)-1)), daikon.Quant.getElement_int(i, \old(j)))
+(!(daikon.Quant.getElement_int(i, \old(j)) == 0)) || (\old(daikon.Quant.getElement_int(i, j)) == 0)
+(daikon.Quant.getElement_int(i, \old(j)) >> \old(daikon.Quant.getElement_int(i, j)) == 0)
+(!(\old(daikon.Quant.getElement_int(i, j)) == 0)) || (daikon.Quant.getElement_int(i, \old(j)) == 0)
+return - daikon.Quant.getElement_int(i, \old(j)) + \old(daikon.Quant.getElement_int(i, j)) == 0
+===========================================================================
+..patsize():::ENTER
+    Variables: pat n
+pat.equals("cX")
+n == 0
+===========================================================================
+..patsize():::EXIT
+    Variables: pat n return orig(pat) orig(n)
+return == 2
+===========================================================================
+..putsub():::ENTER
+    Variables: lin s1 s2 sub
+lin.equals("UW=Fq9MPD@sF6X@g|76zA\":NFc_4vtv%>/L>/W\n") || lin.equals("j+X+RpIPzC8;tLH#@;j+X+RpIPzC8;tLH#@;\n")
+s1 == 2 || s1 == 13 || s1 == 20
+s2 == 3 || s2 == 14 || s2 == 21
+sub.equals("NEW")
+(s2 >> s1 == 0)
+===========================================================================
+..putsub():::EXIT
+    Variables: lin s1 s2 sub orig(lin) orig(s1) orig(s2) orig(sub)
+===========================================================================
+..subline():::ENTER
+    Variables: lin pat sub
+lin.equals("UW=Fq9MPD@sF6X@g|76zA\":NFc_4vtv%>/L>/W\n") || lin.equals("j+X+RpIPzC8;tLH#@;j+X+RpIPzC8;tLH#@;\n")
+pat.equals("cX")
+sub.equals("NEW")
+===========================================================================
+..subline():::EXIT
+    Variables: lin pat sub orig(lin) orig(pat) orig(sub)

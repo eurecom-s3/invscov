@@ -1,0 +1,19 @@
+Chicory todo list sorted in approximate order of importance.
+
+  - Add switch (--enable-globals or --enable-static-variables) to allow
+    instrumentation of static fields (Java's name for global variables).
+    Possibly have it take an argument indicating which fields to
+    include/ignore.
+
+  - Add --exception switch to allow instrumentation of exceptions.
+    To handle exceptional exits, Chicory would need to put a catch statement
+    around every method body in the subject program, and add a new program
+    point for each thrown exception.
+This item is in progress as daikon pull request #56.
+
+  - Consider choosing a new file representation that would be both more
+    compact and faster to read and write.  For instance, there is no need
+    to repeatedly print the names of variables, nor to represent numbers as
+    ASCII printed representations.  The major benefit might be smaller
+    dtrace files, but another benefit would be less time on file I/O and on
+    parsing/unparsing.

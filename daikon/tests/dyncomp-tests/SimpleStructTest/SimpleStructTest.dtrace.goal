@@ -1,0 +1,347 @@
+input-language C/C++
+decl-version 2.0
+var-comparability none
+
+..main():::ENTER
+this_invocation_nonce
+0
+
+..structByValue():::ENTER
+this_invocation_nonce
+1
+d
+1.234567
+1
+x
+<STATIC_ADDR>
+1
+x.a
+5
+1
+x.b
+1.234567
+1
+x.cPtr
+<STACK_ADDR>
+1
+x.cPtr[..]
+[ 5 ]
+1
+y
+<STATIC_ADDR>
+1
+y.a
+5
+1
+y.b
+1.234567
+1
+y.cPtr
+<STACK_ADDR>
+1
+y.cPtr[..]
+[ 5 ]
+1
+
+..structByValue():::EXIT0
+this_invocation_nonce
+1
+d
+1.234567
+1
+x
+<STATIC_ADDR>
+1
+x.a
+5
+1
+x.b
+1.234567
+1
+x.cPtr
+<STACK_ADDR>
+1
+x.cPtr[..]
+[ 5 ]
+1
+y
+<STATIC_ADDR>
+1
+y.a
+5
+1
+y.b
+1.234567
+1
+y.cPtr
+<STACK_ADDR>
+1
+y.cPtr[..]
+[ 5 ]
+1
+
+..structByPtr():::ENTER
+this_invocation_nonce
+2
+dPtr
+<STACK_ADDR>
+1
+dPtr[..]
+[ 1.234567 ]
+1
+xPtr
+<STACK_ADDR>
+1
+xPtr[..]
+[ <STACK_ADDR> ]
+1
+xPtr[..].a
+[ 5 ]
+1
+xPtr[..].b
+[ 1.234567 ]
+1
+xPtr[..].cPtr
+[ <STACK_ADDR> ]
+1
+xPtr[..].cPtr[0]
+[ 5 ]
+1
+yPtr
+<STACK_ADDR>
+1
+yPtr[..]
+[ <STACK_ADDR> ]
+1
+yPtr[..].a
+[ 5 ]
+1
+yPtr[..].b
+[ 1.234567 ]
+1
+yPtr[..].cPtr
+[ <STACK_ADDR> ]
+1
+yPtr[..].cPtr[0]
+[ 5 ]
+1
+
+..structByPtr():::EXIT0
+this_invocation_nonce
+2
+dPtr
+<STACK_ADDR>
+1
+dPtr[..]
+[ 1.234567 ]
+1
+xPtr
+<STACK_ADDR>
+1
+xPtr[..]
+[ <STACK_ADDR> ]
+1
+xPtr[..].a
+[ 5 ]
+1
+xPtr[..].b
+[ 1.234567 ]
+1
+xPtr[..].cPtr
+[ <STACK_ADDR> ]
+1
+xPtr[..].cPtr[0]
+[ 5 ]
+1
+yPtr
+<STACK_ADDR>
+1
+yPtr[..]
+[ <STACK_ADDR> ]
+1
+yPtr[..].a
+[ 5 ]
+1
+yPtr[..].b
+[ 1.234567 ]
+1
+yPtr[..].cPtr
+[ <STACK_ADDR> ]
+1
+yPtr[..].cPtr[0]
+[ 5 ]
+1
+
+..assignPtrThenFieldsInteract():::ENTER
+this_invocation_nonce
+3
+aPtr
+<HEAP_ADDR>
+1
+aPtr[..]
+[ <HEAP_ADDR> ]
+1
+aPtr[..].a
+[ 10 ]
+1
+aPtr[..].b
+[ 10 ]
+1
+aPtr[..].cPtr
+nonsensical
+2
+aPtr[..].cPtr[0]
+nonsensical
+2
+bPtr
+<HEAP_ADDR>
+1
+bPtr[..]
+[ <HEAP_ADDR> ]
+1
+bPtr[..].a
+[ 10 ]
+1
+bPtr[..].b
+[ 10 ]
+1
+bPtr[..].cPtr
+nonsensical
+2
+bPtr[..].cPtr[0]
+nonsensical
+2
+c
+10
+1
+
+..assignPtrThenFieldsInteract():::EXIT0
+this_invocation_nonce
+3
+aPtr
+<HEAP_ADDR>
+1
+aPtr[..]
+[ <HEAP_ADDR> ]
+1
+aPtr[..].a
+[ 10 ]
+1
+aPtr[..].b
+[ 10 ]
+1
+aPtr[..].cPtr
+nonsensical
+2
+aPtr[..].cPtr[0]
+nonsensical
+2
+bPtr
+<HEAP_ADDR>
+1
+bPtr[..]
+[ <HEAP_ADDR> ]
+1
+bPtr[..].a
+[ 10 ]
+1
+bPtr[..].b
+[ 10 ]
+1
+bPtr[..].cPtr
+nonsensical
+2
+bPtr[..].cPtr[0]
+nonsensical
+2
+c
+10
+1
+
+..assignPtrAwayBeforeFieldsInteract():::ENTER
+this_invocation_nonce
+4
+aPtr
+<HEAP_ADDR>
+1
+aPtr[..]
+[ <HEAP_ADDR> ]
+1
+aPtr[..].a
+[ 3 ]
+1
+aPtr[..].b
+[ 3.14159 ]
+1
+aPtr[..].cPtr
+nonsensical
+2
+aPtr[..].cPtr[0]
+nonsensical
+2
+bPtr
+<STACK_ADDR>
+1
+bPtr[..]
+[ <STACK_ADDR> ]
+1
+bPtr[..].a
+[ 5 ]
+1
+bPtr[..].b
+[ 1.234567 ]
+1
+bPtr[..].cPtr
+[ <STACK_ADDR> ]
+1
+bPtr[..].cPtr[0]
+[ 5 ]
+1
+
+..assignPtrAwayBeforeFieldsInteract():::EXIT0
+this_invocation_nonce
+4
+aPtr
+<HEAP_ADDR>
+1
+aPtr[..]
+[ <HEAP_ADDR> ]
+1
+aPtr[..].a
+[ 3 ]
+1
+aPtr[..].b
+[ 3.14159 ]
+1
+aPtr[..].cPtr
+nonsensical
+2
+aPtr[..].cPtr[0]
+nonsensical
+2
+bPtr
+<STACK_ADDR>
+1
+bPtr[..]
+[ <STACK_ADDR> ]
+1
+bPtr[..].a
+[ 5 ]
+1
+bPtr[..].b
+[ 1.234567 ]
+1
+bPtr[..].cPtr
+[ <STACK_ADDR> ]
+1
+bPtr[..].cPtr[0]
+[ 5 ]
+1
+
+..main():::EXIT0
+this_invocation_nonce
+0
+return
+0
+1
+

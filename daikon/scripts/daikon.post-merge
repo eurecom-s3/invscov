@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# This file will be used as .git/hooks/post-merge.
+
+# Fail if any command fails
+set -e
+
+# No need to check format after a merge.  We do it before a commit.
+# make -C java check-format

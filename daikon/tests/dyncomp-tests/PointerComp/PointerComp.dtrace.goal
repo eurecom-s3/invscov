@@ -1,0 +1,147 @@
+input-language C/C++
+decl-version 2.0
+var-comparability none
+
+..main():::ENTER
+this_invocation_nonce
+0
+
+..inc():::ENTER
+this_invocation_nonce
+1
+a
+<STACK_ADDR>
+1
+a[..]
+[ 5 ]
+1
+b
+<HEAP_ADDR>
+1
+b[..]
+[ 10 ]
+1
+
+..inc():::EXIT0
+this_invocation_nonce
+1
+a
+<STACK_ADDR>
+1
+a[..]
+[ 15 ]
+1
+b
+<HEAP_ADDR>
+1
+b[..]
+[ 10 ]
+1
+
+..internalInteraction():::ENTER
+this_invocation_nonce
+2
+oranges
+<STACK_ADDR>
+1
+oranges[..]
+[ 10 ]
+1
+x
+<STACK_ADDR>
+1
+x[..]
+[ 1 ]
+1
+y
+<STACK_ADDR>
+1
+y[..]
+[ 2 ]
+1
+z
+<STACK_ADDR>
+1
+z[..]
+[ 3 ]
+1
+
+..internalInteraction():::EXIT0
+this_invocation_nonce
+2
+oranges
+<STACK_ADDR>
+1
+oranges[..]
+[ 10 ]
+1
+x
+<STACK_ADDR>
+1
+x[..]
+[ 1 ]
+1
+y
+<STACK_ADDR>
+1
+y[..]
+[ 2 ]
+1
+z
+<STACK_ADDR>
+1
+z[..]
+[ 3 ]
+1
+
+..interactAfter():::ENTER
+this_invocation_nonce
+3
+x
+<STACK_ADDR>
+1
+x[..]
+[ 10 ]
+1
+y
+<STACK_ADDR>
+1
+y[..]
+[ 15 ]
+1
+z
+<HEAP_ADDR>
+1
+z[..]
+[ 0 ]
+1
+
+..interactAfter():::EXIT0
+this_invocation_nonce
+3
+x
+<STACK_ADDR>
+1
+x[..]
+[ 10 ]
+1
+y
+<STACK_ADDR>
+1
+y[..]
+[ 15 ]
+1
+z
+<HEAP_ADDR>
+1
+z[..]
+[ 0 ]
+1
+
+..main():::EXIT0
+this_invocation_nonce
+0
+return
+0
+1
+

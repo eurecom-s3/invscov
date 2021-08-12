@@ -1,0 +1,5 @@
+..assignPtrAwayBeforeFieldsInteract() ENTER/39: 1 EXIT0/39: 1
+..assignPtrThenFieldsInteract() ENTER/42: 1 EXIT0/42: 1
+..main() ENTER/3: 1 EXIT0/6: 1
+..structByPtr() ENTER/45: 1 EXIT0/45: 1
+..structByValue() ENTER/36: 1 EXIT0/36: 1

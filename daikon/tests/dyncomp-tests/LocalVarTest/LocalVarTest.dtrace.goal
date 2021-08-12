@@ -1,0 +1,137 @@
+input-language C/C++
+decl-version 2.0
+var-comparability none
+
+..main():::ENTER
+this_invocation_nonce
+0
+::globalD
+40
+1
+::globalE
+<STATIC_ADDR>
+1
+::globalE[..]
+[ 1 2 3 4 ]
+1
+argc
+1
+1
+argv
+<STACK_ADDR>
+1
+argv[..]
+[ "./LocalVarTest" ]
+1
+
+..foo():::ENTER
+this_invocation_nonce
+1
+::globalD
+40
+1
+::globalE
+<STATIC_ADDR>
+1
+::globalE[..]
+[ 1 2 3 4 ]
+1
+a
+<STACK_ADDR>
+1
+a[..]
+[ 10 ]
+1
+b
+<STACK_ADDR>
+1
+b[..]
+[ 20 ]
+1
+c
+<STACK_ADDR>
+1
+c[..]
+[ 30 ]
+1
+d
+<STATIC_ADDR>
+1
+d[..]
+[ 40 ]
+1
+e
+<STATIC_ADDR>
+1
+e[..]
+[ 1 2 3 4 ]
+1
+
+..foo():::EXIT0
+this_invocation_nonce
+1
+::globalD
+40
+1
+::globalE
+<STATIC_ADDR>
+1
+::globalE[..]
+[ 1 2 3 4 ]
+1
+a
+<STACK_ADDR>
+1
+a[..]
+[ 10 ]
+1
+b
+<STACK_ADDR>
+1
+b[..]
+[ 20 ]
+1
+c
+<STACK_ADDR>
+1
+c[..]
+[ 30 ]
+1
+d
+<STATIC_ADDR>
+1
+d[..]
+[ 40 ]
+1
+e
+<STATIC_ADDR>
+1
+e[..]
+[ 1 2 3 4 ]
+1
+
+..main():::EXIT0
+this_invocation_nonce
+0
+::globalD
+40
+1
+::globalE
+<STATIC_ADDR>
+1
+::globalE[..]
+[ 1 2 3 4 ]
+1
+argc
+1
+1
+argv
+<STACK_ADDR>
+1
+argv[..]
+[ "./LocalVarTest" ]
+1
+return
+0
+1
+

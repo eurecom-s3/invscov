@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head><link rel="icon" href="daikon-favicon.png" type="image/png"/>
+  <title>Daikon FAQ (Frequently Asked Questions)</title>
+</head>
+<body>
+
+<p>
+<img src="daikon-logo.gif" alt="Daikon logo" />
+</p>
+
+<p>
+[ <a href="./">Home</a>
+| <b>FAQ</b>
+| <a href="download/">Download</a>
+| <a href="download/doc/">Documentation</a>
+| <a href="pubs/">Publications</a>
+| <a href="mailing-lists.html">Mailing lists</a>
+]
+</p>
+
+<hr />
+
+<h1>Daikon FAQ (Frequently Asked Questions)</h1> <!-- omit from toc -->
+
+<p>Contents:</p>
+<!-- start toc.  do not edit; run html-update-toc instead -->
+    <ul>
+      <li><a href="#How_can_I_get_Daikon">How can I get Daikon?</a></li>
+      <li><a href="#What_is_Daikon">What is Daikon?</a></li>
+      <li><a href="#What_is_an_operational_abstraction">What is an operational abstraction?</a></li>
+      <li><a href="#What_is_an_operational_abstraction_good_for">What is an operational abstraction good for?</a></li>
+      <li><a href="#How_is_an_operational_abstraction_used">How is an operational abstraction used?</a></li>
+      <li><a href="#How_accurate_is_Daikon">How accurate is Daikon?</a></li>
+      <li><a href="#How_can_I_change_my_program...">How can I change my program to make Daikon work better?</a></li>
+      <li><a href="#What_does_the_name_Daikon_mean">What does the name Daikon mean?</a></li>
+      <li><a href="#Whats_new">What's new in Daikon?</a></li>
+      <li><a href="#How_can_I_get_help">How can I get help?  How can I learn more?</a></li>
+      <li><a href="#How_can_I_help">How can I help?</a></li>
+    </ul>
+<!-- end toc -->
+
+
+<h2><a name="How_can_I_get_Daikon">How can I get Daikon?</a></h2>
+
+<p>
+Daikon is available for download, including source code, binaries, and
+documentation, at <a href="http://plse.cs.washington.edu/daikon/download/">http://plse.cs.washington.edu/daikon/download/</a>.
+</p>
+
+
+<h2><a name="What_is_Daikon">What is Daikon?</a></h2>
+
+<p>
+Daikon is an <em>invariant detector</em>.  Given a data source (such as the
+values computed by a program at run time), Daikon generalizes over the
+observed values and reports properties that are true about the data.
+Daikon implements a type of machine learning to summarize the raw data into
+a small set of easily comprehensible formulas.
+</p>
+
+
+<h2><a name="What_is_an_operational_abstraction">What is an operational abstraction?</a></h2>
+
+<p>
+The set of formulas that Daikon outputs is called an <em>operational
+abstraction</em>.  The operational abstraction states properties about a
+program's data structures &mdash; the sort that might be written in an
+<code>assert</code> statement or a formal specification.
+</p>
+
+<p>
+Here is a simple example of Daikon's output:  <a
+href="StackAr.html">StackAr.html</a>.  The colored annotations starting
+with &ldquo;<code style="color:red;">@</code>&rdquo; (in <a
+href="http://www.jmlspecs.org/">JML</a> format)
+were automatically detected by
+Daikon and automatically inserted in the source code.  Many other uses for
+invariants are possible in addition to insertion as documentation.
+</p>
+
+
+<h2><a name="What_is_an_operational_abstraction_good_for">What is an operational abstraction good for?</a></h2>
+
+<p>
+Program properties (such as specifications and dynamically detected
+invariants) are useful for a wide variety of software construction,
+understanding, reuse, and modification tasks.  The properties may be
+examined by a human or used as input to a tool
+</p>
+
+<p>
+Direct uses of invariants by a human include:
+</p>
+<ul>
+  <li>Document code, indicating the structure of its data and computation.</li>
+  <li>Maintain invariants to avoid introducing bugs; if a property is
+      established at one point in a program, it is likely to be depended on
+      elsewhere, but if the invariant is not documented, it is all to easy
+      to accidentally violate it, introducing a bug in a far-removed part
+      of the program.</li>
+  <li>Locate unusual conditions that should be brought to a programmer's
+      attention and may be bugs.</li>
+  <li>Bootstrap proofs and aid static checkers by providing goals and
+      automating the time-consuming, tedious chore of annotating programs.</li>
+</ul>
+
+<p>
+Uses of invariants by other tools include:
+</p>
+<ul>
+  <li>Check assumptions by converting the invariants to <code>assert</code>
+      statements.</li>
+  <li>Validate test suites by indicating the level of value coverage, which
+      indicates how many different values are computed.  This complements
+      code coverage, which tells how many lines are executed.</li>
+  <li>Provide hints for profile-directed compilation, but at the level of
+      the program abstractions, permitting entire function calls to
+      possibly be omitted after a check.</li>
+</ul>
+
+
+<h2><a name="How_is_an_operational_abstraction_used">How is an operational abstraction used?</a></h2>
+
+<p>
+An operational abstraction can be used automatically, in which case a human
+never directly examines it, or both automatically and manually, in which
+case a human does examine (parts of) it.  A number of automatic uses are
+discussed in the <a href="pubs/">research papers</a> that use Daikon.
+</p>
+
+<p>
+As an example of manual use of Daikon, a programmer might run it on a
+program and see, at a procedure entry,
+</p>
+<pre>
+  w >= 0
+  x &lt; 10
+  y = w + x
+  z = 0 (mod 4)
+</pre>
+<p>
+(These examples are all numeric for simplicity, but Daikon detects
+relationships over general data structures, including arrays, collections,
+and pointers.)
+</p>
+<ul>
+<li>
+Seeing the &ldquo;w >= 0&rdquo; invariant, the programmer might remark, &ldquo;I already knew
+that w is non-negative; that doesn't help me.&rdquo;  (However, examining
+this invariant consumes little of the programmer's time.)
+</li>
+<li>
+Seeing the &ldquo;x &lt; 10&rdquo; invariant, the programmer might realize after a
+moment's thought that the test suite is deficient:  it never manipulates
+data structures containing more than 9 elements.  This invariant has
+indicated not only a problem with the test suite, but exactly how to fix
+it.
+</li>
+<li>
+Seeing the &ldquo;y = w + x&rdquo; invariant, the programmer might suddenly understand
+the operation of the algorithm or why certain parts of the program are
+coded in the way they are.  This can prevent long sessions of puzzlement
+over the system, and inserting the invariant as a comment can prevent
+others from going through the same confusion.
+</li>
+<li>
+Seeing the &ldquo;z = 0 (mod 4)&rdquo; invariant, the programmer might be confused
+about why z is always a multiple of 4.  The programmer has two options.
+<ol>
+  <li>
+The programmer can examine the program and test
+   suite to understand why this is so.  (Perhaps z holds a pointer value or
+   is some other kind of specialized index; perhaps it is a capacity that
+   is always increased by a multiple of 4; perhaps there is some odd
+   property of the test suite.)  This gives the programmer a much better
+   understanding of the operation of the program.
+  </li>
+  <li>
+The other option is for the programmer not to investigate this property
+   further &mdash; perhaps it is not directly relevant to the current task &mdash;
+   but to be careful not to make changes that violate that property.
+   Violating the property could introduce errors if other parts of the code
+   depend on it.
+  </li>
+</ol>
+</li>
+</ul>
+
+
+<h2><a name="How_accurate_is_Daikon">How accurate is Daikon?</a></h2>
+
+<p>
+The Daikon system examines the values computed during the target program's
+execution, looking for patterns and relationships among those values.
+There are two potential problems:  missing properties (false negatives),
+and spurious properties (false positives).
+</p>
+
+<p>
+False negatives are inevitable, because every tool has a grammar that
+limits what it can express.  Daikon has a relatively simple and broadly
+applicable grammar.  Users can extend it easily, by writing a Java class
+that satisfies an interface with four methods.
+</p>
+
+<p>
+False positives can also occur; the properties are not guaranteed to hold
+for every possible execution.  As with any other dynamic (run-time)
+technique, such as testing, the results depend on the quality of the test
+suite.  In practice, the results have proved to be quite accurate even with
+very modest test suites, thanks to statistical tests that weed out most
+false positives.  And research has shown that the inaccuracies can help in
+improving test suites.
+</p>
+
+
+<h2><a name="How_can_I_change_my_program...">How can I change my program to make Daikon work better?</a></h2>
+
+<p>
+Another way of stating this question is, &ldquo;On what sort of programs does
+Daikon tend to perform poorly?&rdquo;
+</p>
+
+<p>
+Typically, will run Daikon not on a whole program, but on the particular
+component(s) of interest.  Trying to run Daikon on too much data will
+overwhelm either Daikon, or else you when you try to examine the output.
+(If you plan to feed the output into another tool, verbosity is less of a
+concern.)
+</p>
+
+<p>
+Daikon can produce invariants if you provide it with the appropriate
+values.  If your data structures are organized in a fashion that makes
+Daikon unable to access those values, then Daikon obviously cannot produce
+any desired output.
+If values are packed (for instance, using a bit array instead of an array
+of boolean values), then Daikon will not be able to access the values.
+If values have very complex names (for example, <code>a.b[i].c.d()</code>, then
+Daikon may not even try that variable name.  See the configuration options
+that control what derived variables Daikon uses.
+</p>
+
+
+<h2><a name="What_does_the_name_Daikon_mean">What does the name Daikon mean?</a></h2>
+
+<p>
+A daikon is a type of Asian radish.  Daikon is pronounced like the two
+English words die-con.  The name can be thought of as standing for &ldquo;dynamic
+conjectures&rdquo;.
+</p>
+
+
+<h2><a name="Whats_new">What's new in Daikon?</a></h2>
+
+<p>
+The <a href="download/doc/CHANGES">CHANGES file</a> lists what is new in
+each release of Daikon.
+</p>
+
+<p>
+Before you
+report a bug, please
+upgrade to the latest version of Daikon to verify that the problem still
+exists, and then include all the <a
+href="download/doc/daikon.html#Reporting-problems">information</a> requested by
+the manual.
+</p>
+
+
+<h2><a name="How_can_I_get_help">How can I get help?  How can I learn more?</a></h2>
+
+<p>
+If you have questions about using Daikon, first read the
+<a href="download/doc/daikon.html">Daikon manual</a>, including the
+<a href="download/doc/daikon.html#Troubleshooting">&ldquo;Troubleshooting&rdquo; section</a>.
+If you have questions about modifying Daikon, also see the
+<a href="download/doc/developer.html">Daikon developer manual</a>, the
+<a href="download/api/">Javadoc API documentation</a>, and the
+source code.
+</p>
+
+<p>
+If you do not find an answer in the documentation, or you think you have
+found an error (bug), then use one of the
+<a href="mailing-lists.html">mailing lists</a> to get help from other
+Daikon users and from the Daikon developers.  The manual tells you
+what <a href="download/doc/daikon.html#Reporting-problems">information to include</a> in
+your bug report in order to make it most useful, which maximizes your
+chances of receiving a fast and relevant reply.
+</p>
+
+
+<h2><a name="How_can_I_help">How can I help?</a></h2>
+
+<p>
+Daikon is a collaborative project.  Over two dozen <a href="download/doc/daikon.html#Credits">programmers</a> have
+contributed code (and we gratefully accept new features and bug fixes),
+and many users have helped by making suggestions and filing problem reports
+(whether about the code or the documentation).  Please give us feedback
+through the <a href="mailing-lists.html">mailing lists</a>, or just tell us how you
+have used Daikon.
+</p>
+
+
+<hr />
+
+<p>
+[ <a href="./">Home</a>
+| <b>FAQ</b>
+| <a href="download/">Download</a>
+| <a href="download/doc/">Documentation</a>
+| <a href="pubs/">Publications</a>
+| <a href="mailing-lists.html">Mailing lists</a>
+]
+</p>
+
+
+</body>
+</html>
+
+<!--  LocalWords:  StackAr html daikon
+ -->

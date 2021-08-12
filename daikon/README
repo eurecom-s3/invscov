@@ -1,0 +1,34 @@
+This is a patched version of Daikon that provides the RunCorpus command.
+Written by Andrea Fioraldi <andreafioraldi@gmail.com>
+
+Usage:
+
+java -cp $DAIKONDIR/daikon.jar daikon.RunCorpus --invs <textual output file> \
+  --cmd './program <args...>' --corpus <corpus directory> <decls file>
+
+If your program takes a filename in the arguments as input, replace it with @@,
+otherwise the tool assumes that the input is taken via stdin.
+
+The name of the dtrace file that the program has to produce is passed in the
+DAIKON_DTRACE_FILE environment variable. Make sure that your frontend follows
+this rule.
+
+Temporary dtrace files are written in the current directory, you problably may
+want to use an in-memory filesystem.
+
+================================================================================
+
+This is the distribution of the Daikon invariant detector,
+Daikon version 5.8.3, released May 4, 2020.
+
+If you are working with a Daikon distribution downloaded from the Daikon
+website, then most everything is setup and ready to go.  See the 'doc'
+subdirectory for additional information, including installation instructions.
+You should start out with the file:
+  doc/index.html
+The documentation also appears on the Daikon homepage:
+  http://plse.cs.washington.edu/daikon/
+
+If you are working with source cloned from the source code repository
+https://github.com/codespecs/daikon, then please review the file
+README.source.

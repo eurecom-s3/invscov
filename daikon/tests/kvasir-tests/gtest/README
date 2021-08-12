@@ -1,0 +1,14 @@
+This test case comes from the Google C++ Testing Framework.
+It is a sample program provided with the release.
+The version used was gtest-1.6.0.
+
+It will always fail the dtrace compare due to program variables
+containing elapsed time. So we ignore the dtrace file diff.
+
+Similarly, the invs output contains timing values and some of the
+invariants are dependent on the current directory.
+Hence, we ignore the invs file diff.
+
+Finally, the counts file has a few lines that also are dependent
+on the current directory.  We run a small script to remove these
+lines prior to the diff.

@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+
+import json
+import ast
+import sys
+import os
+
+invscov_outpath = os.getenv("INVSCOV_OUTPUT_PATH")
+if invscov_outpath is None:
+    invscov_outpath = "invscov_output"
+    print("WARN: INVSCOV_OUTPUT_PATH env not set, fallback to default 'invscov_output'")
+
+use_comp = True
+if len(sys.argv) > 1 and "nocomp" in sys.argv :
+    use_comp = False
+
+use_ranges = True
+if len(sys.argv) > 1 and "noranges" in sys.argv :
+    use_ranges = False
+
+body = "[\n"
+for fname in os.listdir(invscov_outpath):
+    if not fname.endswith(".literal.part"):
+        continue
+    path = os.path.join(invscov_outpath, fname)
+    with open(path) as f:
+        body += f.read()
+body += "\n]"
+
+funcs = ast.literal_eval(body)
+
+with open(os.path.join(invscov_outpath, "decls.json"), "w") as f:
+    json.dump(funcs, f, indent=2)
+
+def get_type(t):
+    if t.startswith("i") or t.startswith("u"): return "int"
+    if t in ("float", "double"): return t
+    return "hashcode"
+
+def get_dec_type(t):
+    if t == 'i64' or t == 'u64': return 'long'
+    if t.startswith("i") or t.startswith("u"): return "int"
+    if t in ("float", "double"): return t
+    return "hashcode"
+
+def get_kind(v):
+    if v["kind"] in ("param", "var"): return "variable"
+    elif v["kind"] == "field":
+        return "field " + v["name"].split(".")[-1]
+
+structs = {}
+
+outf = open(os.path.join(invscov_outpath, "decls.decls"), "w")
+
+outf.write("""input-language C/C++
+decl-version 2.0
+var-comparability implicit
+
+""")
+
+for fun in funcs:
+    for ppt in fun["ppts"]:
+        v_types = {}
+        outf.write("ppt " + fun["name"] + "():::" + ppt + "\n")
+        if ppt == "ENTER":
+            outf.write("ppt-type enter" + "\n")
+        else:
+            outf.write("ppt-type subexit" + "\n")
+        for v in fun["ppts"][ppt]:
+            v_types[v["name"]] = v["type"]
+            outf.write("variable " + v["name"] + "\n")
+            outf.write("  var-kind " + get_kind(v) + "\n")
+            outf.write("  dec-type " + get_dec_type(v["type"]) + "\n")
+            outf.write("  rep-type " + get_type(v["type"]) + "\n")
+            if v["kind"] == "param":
+                outf.write("  flags is_param" + "\n")
+            if "comp" in v and use_comp:
+                outf.write("  comparability " + str(v["comp"]) + "\n")
+            else:
+                outf.write("  comparability -1\n")
+            if "min" in v and use_ranges:
+                outf.write("  min-value " + str(v["min"]) + "\n")
+            if "max" in v and use_ranges:
+                outf.write("  max-value " + str(v["max"]) + "\n")
+            if v["kind"] == "field":
+                #print("  parent parent " + v["parent"] + ":::OBJECT 1")
+                outf.write("  enclosing-var " + v["parent"] + "\n")
+                cl = v_types[v["parent"]]
+                if cl != "<anon>":
+                    structs[cl] = structs.get(cl, {})
+                    field_name = v["name"].split(".")[-1]
+                    structs[cl][field_name] = v["type"]
+        outf.write("\n")
+
+'''for name in structs:
+    outf.write("ppt %s:::OBJECT" % name + "\n")
+    outf.write("ppt-type object" + "\n")
+    for v in structs[name]:
+        outf.write("variable " + v + "\n")
+        outf.write("  var-kind variable" + "\n")
+        outf.write("  dec-type " + structs[name][v] + "\n")
+        outf.write("  rep-type " + get_type(structs[name][v]) + "\n")
+    outf.write("\n")'''
+

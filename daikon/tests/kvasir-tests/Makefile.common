@@ -1,0 +1,444 @@
+# This is a -*- makefile -*-, Emacs
+
+DAIKONDIR := $(realpath $(dir $(lastword $(MAKEFILE_LIST)))../..)
+
+ifeq ($(shell uname -m),x86_64)
+VALGRIND_ARCH := amd64
+else
+VALGRIND_ARCH := x86
+endif
+
+CC := gcc
+CXX := g++
+CFLAGS += -gdwarf-2
+
+# Ubuntu sets -fstack-protector-strong on by default
+# we turn if back off to get baseline results to match Fedora.
+CFLAGS += -fno-stack-protector
+
+# With gcc version 10 -fno-common is the default.
+# Many of our tests won't compile with this option.
+CFLAGS += -fcommon
+
+VALGRIND = ${DAIKONDIR}/fjalar/valgrind/inst/bin/valgrind
+KVASIR_SKIN = ${DAIKONDIR}/fjalar/valgrind/inst/lib/valgrind/fjalar-$(VALGRIND_ARCH)-linux
+KVASIR_SCRIPT = ${DAIKONDIR}/scripts/kvasir-dtrace
+# --dyncomp is now the default; turn back off to minimize changes to this Makefile
+KVASIR_OPTIONS := $(KVASIR_OPTIONS) --no-dyncomp
+KVASIR_DECLS_2 := $(KVASIR_DECLS_@)
+CLEAN_OUTPUT := ../clean-output.pl
+CLEAN_DECLS := ../clean-decls.pl
+REMOVE_TIMING := ../remove-timing.pl
+REMOVE_VARIABLE_COUNT := ../remove-variable-count.pl
+DECLS_2_COMP ?= ${DAIKONDIR}/scripts/decls2comp.py
+RUN_MANY := ../run-many.pl
+DTRACE_DIFF ?= dtrace-diff.pl
+SORT_DTRACE_INPLACE := perl -Si ${DAIKONDIR}/scripts/sort-dtrace.pl
+SORT_DECLS := ${DAIKONDIR}/scripts/sort-decls-2.py
+INCLUDES ?=
+LIBS ?=
+LIBFLAGS ?=
+DIFF_NAME ?= $(shell basename `pwd`)
+BEFORE_RUN ?= @:
+AFTER_RUN ?= @:
+
+ifeq (i386, $(shell uname -i))
+DAIKON := java -Xmx960m -cp ${DAIKONDIR}/daikon.jar daikon.Daikon --no_text_output --no_show_progress --config_option daikon.derive.Derivation.disable_derived_variables=true --config ../config.txt --config_option daikon.DynamicConstants.OneOf_only=true --config_option daikon.Debug.show_stack_trace=true ${DAIKON_OPTIONS}
+PRINT_INV := java -Xmx960m -cp ${DAIKONDIR}/daikon.jar daikon.PrintInvariants
+else
+# gtest needs a lot of memory and I don't think it matters to give same large amount to all tests.
+DAIKON := java -ea -Xmx2500M -cp ${DAIKONDIR}/daikon.jar daikon.Daikon --no_text_output --no_show_progress --config_option daikon.derive.Derivation.disable_derived_variables=true --config ../config.txt --config_option daikon.DynamicConstants.OneOf_only=true --config_option daikon.Debug.show_stack_trace=true ${DAIKON_OPTIONS}
+PRINT_INV := java -Xmx2500M -cp ${DAIKONDIR}/daikon.jar daikon.PrintInvariants
+endif
+
+default: summary-w-daikon
+
+# Set up potential OS_ID and OS_ID+OS_REL specific goal targets.
+OS_ID := $(shell lsb_release -si)
+OS_REL := $(shell lsb_release -sr)
+GOAL := goal
+
+ifeq ($(OS_ID),CentOS)
+ifeq ($(OS_REL),7.8.2003)
+ifeq (washington,$(findstring washington,$(shell uname -n)))
+# UW CSE version of CentOS
+	GOAL := goal-CentOS-UWCSE
+else
+# Standard version of CentOS
+       GOAL := goal-CentOS2003
+endif
+endif
+ifeq ($(OS_REL),8.1.1911)
+       GOAL := goal-CentOS1911
+endif
+ifeq ($(OS_REL),7.7.1908)
+       GOAL := goal-CentOS1908
+endif
+ifeq ($(OS_REL),7.6.1810)
+       GOAL := goal-CentOS1810
+endif
+# other versions of CentOS will use goal-CentOS if it exists
+# otherwise the default goal file
+endif
+
+ifeq ($(OS_ID),Fedora)
+ifeq ($(OS_REL),28)
+	GOAL := goal-Fedora28
+endif
+ifeq ($(OS_REL),30)
+	GOAL := goal-Fedora30
+endif
+ifeq ($(OS_REL),32)
+	GOAL := goal-Fedora32
+endif
+# other versions of Fedora will use goal-Fedora if it exists
+# otherwise the default goal file
+endif
+
+ifeq ($(OS_ID),Ubuntu)
+ifeq ($(OS_REL),20.04)
+# Recent versions of Ubuntu set -fstack-clash-protection on by default.
+# This breaks stack frame discovery in Kvasir.
+# Some gcc version 7 compilers have this option and some don't.
+# Until more consistent, only check if Ubuntu 20.04.
+GCC_MAJOR_VERSION := $(shell gcc -dumpversion)
+ifeq ($(shell expr $(GCC_MAJOR_VERSION) \>= 7),1)
+CFLAGS += -fno-stack-clash-protection
+endif
+
+	GOAL := goal-Ubuntu2004
+endif
+ifeq ($(OS_REL),18.04)
+	GOAL := goal-Ubuntu1804
+endif
+ifeq ($(OS_REL),16.04)
+	GOAL := goal-Ubuntu1604
+endif
+# other versions of Ubuntu will use goal-Ubuntu if it exists
+# otherwise the default goal file
+endif
+
+# We test Kvasir on three different OS platforms: Ubuntu, Fedora and CentOS.
+# The code above has set $(GOAL) to a value that represents the current OS type
+# and version number; e.g. 'goal-Fedora25'.
+
+# The function below identifies the correct goal file based on:
+# the test case => $(1)
+# the OS => $(OS_ID)
+# the OS version => $(OS_REL)
+# There are three general steps:
+#   if a OS type and version specific goal file exists [$(1).$(GOAL)] - use it
+#   else, if a generic OS goal file exists [$(1).goal-Fedora for example] - use it
+#   otherwise, use the default goal file [$(1).goal]
+goal_name = $(if $(shell if [ -f $(1).$(GOAL) ] ; then echo true; fi), \
+				$(1).$(GOAL), \
+				$(if $(findstring CentOS, $(OS_ID)), \
+					$(if $(shell if [ -f $(1).goal-CentOS ] ; then echo true; fi), \
+						$(1).goal-CentOS, \
+						$(1).goal), \
+					$(if $(findstring Fedora, $(OS_ID)), \
+						$(if $(shell if [ -f $(1).goal-Fedora ] ; then echo true; fi), \
+							$(1).goal-Fedora, \
+							$(1).goal), \
+					    $(if $(findstring Ubuntu, $(OS_ID)), \
+						    $(if $(shell if [ -f $(1).goal-Ubuntu ] ; then echo true; fi), \
+							    $(1).goal-Ubuntu, \
+							    $(1).goal), \
+						    $(1).goal) \
+				     ) \
+				) \
+			)
+
+show-os:
+	@echo $(OS_ID) $(OS_REL)
+
+ifdef COMPRESS_DTRACE
+export DTRACEGZIP := 1
+DTRACE_EXT := .dtrace.gz
+ZCAT := zcat
+else
+DTRACE_EXT := .dtrace
+ZCAT := cat
+endif
+
+ifdef CPLUSPLUS
+KVASIR_OPTIONS := $(KVASIR_OPTIONS) --object-ppts
+C_EXT ?= cc
+COMPILER := $(CXX)
+CFLAGS += -std=gnu++98
+else
+C_EXT ?= c
+COMPILER := $(CC)
+CFLAGS += -std=gnu89
+endif
+
+ifneq ($(OS_ID),CentOS)
+# Ubuntu (17.10) sets -pie on by default
+# we must turn it back off
+CFLAGS += -no-pie
+endif
+
+SOURCES ?= $(NAME).$(C_EXT)
+
+ifndef CUSTOM_BUILD
+$(NAME): $(SOURCES) $(LIBS) $(INCLUDES)
+	$(COMPILER) $(CFLAGS) $(DEFINES) $(SOURCES) -o $@ $(LIBFLAGS) $(LIBS)
+endif
+
+.PRECIOUS: %.decls %$(DTRACE_EXT) %.out %.decls.diff %$(DTRACE_EXT).diff %.out.diff %.comp %comp.diff
+
+daikon-output/$(NAME).decls: ran-kvasir
+	@
+
+daikon-output/$(NAME).dyncomp.decls: ran-kvasir
+	@
+
+daikon-output/$(NAME)$(DTRACE_EXT): ran-kvasir
+	@
+
+daikon-output/$(NAME)$(DTRACE_EXT).orig: ran-kvasir
+	@
+
+daikon-output/$(NAME)$(DTRACE_EXT).clean: ran-kvasir
+	@
+
+$(NAME).out: ran-kvasir
+	@
+
+$(NAME).comp: ran-kvasir
+	@
+
+daikon-output/$(NAME).inv.gz: daikon-output/$(NAME).dyncomp.decls \
+                              daikon-output/$(NAME)$(DTRACE_EXT).orig
+	$(DAIKON) $^ -o daikon-output/$(NAME).inv.gz
+
+daikon-output/$(NAME).invs.txt: daikon-output/$(NAME).inv.gz
+	$(PRINT_INV) $< >$@
+ifneq ($(REMOVE_TIMING_VALUES),)
+	perl -i $(REMOVE_TIMING) $@
+endif
+
+invs-large: $(NAME) $(KVASIR_SCRIPT) $(VALGRIND)
+	$(BEFORE_RUN)
+	$(KVASIR_SCRIPT) $(KVASIR_OPTIONS) --dtrace-file=- ./$(NAME) $(PROGRAM_ARGS)  | $(DAIKON) - -o daikon-output/$(NAME).inv.gz
+	$(AFTER_RUN)
+	$(PRINT_INV) daikon-output/$(NAME).inv.gz > daikon-output/$(NAME).inv.txt
+
+
+ifdef TESTS_SCRIPT
+ran-kvasir: $(NAME) $(KVASIR_SCRIPT) $(VALGRIND) $(KVASIR_SKIN) $(TESTS_SCRIPT) $(CLEAN_OUTPUT) $(CLEAN_DECLS)
+	rm -f daikon-output/$(NAME)$(DTRACE_EXT)
+	$(BEFORE_RUN)
+	DTRACEAPPEND=1 perl $(RUN_MANY) $(KVASIR_SCRIPT) <$(TESTS_SCRIPT) >$(NAME).out
+	$(AFTER_RUN)
+	cat /dev/null $(EXTRA_OUTPUTS) >>$(NAME).out
+	perl -i $(CLEAN_OUTPUT) $(NAME).out
+	cp -f daikon-output/$(NAME).dtrace daikon-output/$(NAME).dtrace.orig
+	perl -i $(CLEAN_OUTPUT) daikon-output/$(NAME).dtrace
+	perl -i $(CLEAN_DECLS) daikon-output/$(NAME).decls
+	perl -i $(CLEAN_DECLS) daikon-output/$(NAME).dyncomp.decls
+	$(DECLS_2_COMP) daikon-output/$(NAME).dyncomp.decls > $(NAME).comp
+	$(SORT_DTRACE_INPLACE) daikon-output/$(NAME).decls
+	$(SORT_DTRACE_INPLACE) daikon-output/$(NAME).dtrace.orig
+	$(SORT_DTRACE_INPLACE) daikon-output/$(NAME).dtrace
+	$(SORT_DTRACE_INPLACE) daikon-output/$(NAME).dyncomp.decls
+	touch $@
+else
+ifdef DTRACE_APPEND
+ran-kvasir: $(NAME) $(KVASIR_SCRIPT) $(VALGRIND) $(KVASIR_SKIN) $(CLEAN_OUTPUT) $(CLEAN_DECLS)
+	$(BEFORE_RUN)
+	$(KVASIR_SCRIPT) $(KVASIR_OPTIONS) --decls-file=daikon-output/$(NAME).decls ./$(NAME) $(PROGRAM_ARGS) >$(NAME).out 2>&1
+	$(BEFORE_RUN)
+	$(BEFORE_RUN)
+	$(KVASIR_SCRIPT) $(KVASIR_OPTIONS) --decls-file=daikon-output/$(NAME).decls --dtrace-file=daikon-output/$(NAME).dtrace --dtrace-append ./$(NAME) $(PROGRAM_ARGS) >$(NAME).out 2>&1
+	$(BEFORE_RUN)
+	$(KVASIR_SCRIPT) $(KVASIR_OPTIONS) --decls-only --dyncomp --decls-file=daikon-output/$(NAME).dyncomp.decls ./$(NAME) $(PROGRAM_ARGS) >/dev/null 2>&1
+	$(AFTER_RUN)
+	cat /dev/null $(EXTRA_OUTPUTS) >>$(NAME).out
+	perl -i $(CLEAN_OUTPUT) $(NAME).out
+	cp -f daikon-output/$(NAME).dtrace daikon-output/$(NAME).dtrace.orig
+	perl -i $(CLEAN_OUTPUT) daikon-output/$(NAME).dtrace
+	perl -i $(CLEAN_DECLS) daikon-output/$(NAME).decls
+	perl -i $(CLEAN_DECLS) daikon-output/$(NAME).dyncomp.decls
+	$(DECLS_2_COMP) daikon-output/$(NAME).dyncomp.decls > $(NAME).comp
+	$(SORT_DTRACE_INPLACE) daikon-output/$(NAME).decls
+	$(SORT_DTRACE_INPLACE) daikon-output/$(NAME).dtrace.orig
+	$(SORT_DTRACE_INPLACE) daikon-output/$(NAME).dtrace
+	$(SORT_DTRACE_INPLACE) daikon-output/$(NAME).dyncomp.decls
+	touch $@
+else
+ifeq ($(COUNTS_ONLY),)
+ran-kvasir: $(NAME) $(KVASIR_SCRIPT) $(VALGRIND) $(KVASIR_SKIN) $(CLEAN_OUTPUT) $(CLEAN_DECLS)
+	$(BEFORE_RUN)
+	$(KVASIR_SCRIPT) $(KVASIR_OPTIONS) --decls-file=daikon-output/$(NAME).decls ./$(NAME) $(PROGRAM_ARGS) >$(NAME).out 2>&1
+	$(BEFORE_RUN)
+	$(KVASIR_SCRIPT) $(KVASIR_OPTIONS) --decls-only --dyncomp --decls-file=daikon-output/$(NAME).dyncomp.decls ./$(NAME) $(PROGRAM_ARGS) >/dev/null 2>&1
+	$(AFTER_RUN)
+	cat /dev/null $(EXTRA_OUTPUTS) >>$(NAME).out
+	perl -i $(CLEAN_OUTPUT) $(NAME).out
+	cp -f daikon-output/$(NAME).dtrace daikon-output/$(NAME).dtrace.orig
+	perl -i $(CLEAN_OUTPUT) daikon-output/$(NAME).dtrace
+	perl -i $(CLEAN_DECLS) daikon-output/$(NAME).decls
+	perl -i $(CLEAN_DECLS) daikon-output/$(NAME).dyncomp.decls
+	$(DECLS_2_COMP) daikon-output/$(NAME).dyncomp.decls > $(NAME).comp
+	$(SORT_DTRACE_INPLACE) daikon-output/$(NAME).decls
+	$(SORT_DTRACE_INPLACE) daikon-output/$(NAME).dtrace.orig
+	$(SORT_DTRACE_INPLACE) daikon-output/$(NAME).dtrace
+	$(SORT_DTRACE_INPLACE) daikon-output/$(NAME).dyncomp.decls
+	touch $@
+else
+ran-kvasir: $(NAME) $(KVASIR_SCRIPT) $(VALGRIND) $(KVASIR_SKIN) $(CLEAN_OUTPUT) $(CLEAN_DECLS)
+	$(BEFORE_RUN)
+	$(KVASIR_SCRIPT) $(KVASIR_OPTIONS) --program-stdout='&2' --program-stderr='&2' --dtrace-file=- ./$(NAME) $(PROGRAM_ARGS) 2>$(NAME).out | ${DAIKONDIR}/scripts/dtrace-count.pl >$(NAME).counts
+	$(AFTER_RUN)
+	cat /dev/null $(EXTRA_OUTPUTS) >>$(NAME).out
+	perl -i $(CLEAN_OUTPUT) $(NAME).out
+	perl -i $(CLEAN_DECLS) $(NAME).counts
+	$(BEFORE_RUN)
+	$(KVASIR_SCRIPT) $(KVASIR_OPTIONS) --dyncomp --decls-only --decls-file=daikon-output/$(NAME).dyncomp.decls ./$(NAME) $(PROGRAM_ARGS) >/dev/null 2>&1
+	perl -i $(CLEAN_DECLS) daikon-output/$(NAME).dyncomp.decls
+	$(DECLS_2_COMP) daikon-output/$(NAME).dyncomp.decls > $(NAME).comp
+	$(SORT_DTRACE_INPLACE) daikon-output/$(NAME).dyncomp.decls
+	touch $@
+endif
+endif
+endif
+
+ifeq ($(COUNTS_ONLY),)
+$(NAME).counts: daikon-output/$(NAME)$(DTRACE_EXT)
+	$(ZCAT) $< | ${DAIKONDIR}/scripts/dtrace-count.pl >$@
+else
+$(NAME).counts: ran-kvasir
+	@
+endif
+
+counts: $(NAME).counts
+
+$(DIFF_NAME).decls.diff: daikon-output/$(NAME).decls $(call goal_name,$(NAME).decls)
+	-diff -u -F::: $(call goal_name,$(NAME).decls) daikon-output/$(NAME).decls >$@ 2>&1
+
+$(DIFF_NAME).counts.diff: $(NAME).counts $(call goal_name,$(NAME).counts)
+ifneq ($(REMOVE_VARIABLE_COUNTS),)
+	perl -i $(REMOVE_VARIABLE_COUNT) $(NAME).counts
+endif
+	-diff -u $(call goal_name,$(NAME).counts) $(NAME).counts >$@ 2>&1
+
+ifeq ($(SKIP_DTRACE_DIFF),)
+$(DIFF_NAME).dtrace.diff: daikon-output/$(NAME)$(DTRACE_EXT) $(call goal_name,$(NAME).dtrace)
+	-diff --text -u $(call goal_name,$(NAME).dtrace) daikon-output/$(NAME)$(DTRACE_EXT) >$@ 2>&1
+else
+$(DIFF_NAME).dtrace.diff: daikon-output/$(NAME)$(DTRACE_EXT)
+endif
+
+ifeq ($(SKIP_OUT_DIFF),)
+$(DIFF_NAME).out.diff: $(NAME).out $(call goal_name,$(NAME).out)
+	-diff --text -u $(call goal_name,$(NAME).out) $(NAME).out  >$@ 2>&1
+else
+$(DIFF_NAME).out.diff: $(NAME).out
+endif
+
+ifeq ($(SKIP_INVS_DIFF),)
+$(DIFF_NAME).invs.diff: daikon-output/$(NAME).invs.txt $(call goal_name,$(NAME).invs)
+	-diff --text -F::: -u $(call goal_name,$(NAME).invs) daikon-output/$(NAME).invs.txt >$@ 2>&1
+else
+$(DIFF_NAME).invs.diff: daikon-output/$(NAME).invs.txt
+endif
+
+$(DIFF_NAME).comp.diff: $(NAME).comp $(call goal_name,$(NAME).comp)
+	-diff --text -F::: -u $(call goal_name,$(NAME).comp) $(NAME).comp >$@ 2>&1
+
+ifeq ($(COUNTS_ONLY),)
+DIFF_FILES := $(DIFF_NAME).comp.diff $(DIFF_NAME).decls.diff $(DIFF_NAME).dtrace.diff $(DIFF_NAME).counts.diff $(DIFF_NAME).out.diff
+INV_DIFFS := $(DIFF_NAME).invs.diff
+else
+DIFF_FILES := $(DIFF_NAME).comp.diff $(DIFF_NAME).counts.diff $(DIFF_NAME).out.diff
+INV_DIFFS :=
+endif
+
+daikon-output/$(NAME)_2.dtrace: daikon-output/$(NAME).dtrace $(KVASIR_SCRIPT) $(VALGRIND)
+	$(BEFORE_RUN)
+	$(KVASIR_SCRIPT) $(KVASIR_DECLS_2) --dtrace-file=daikon-output/$(NAME)_2.dtrace ./$(NAME) $(PROGRAM_ARGS) > kvasir-output.log
+	$(AFTER_RUN)
+
+decls-2-compile: daikon-output/$(NAME)_2.dtrace
+	$(DAIKON)  daikon-output/$(NAME)_2.dtrace -o daikon-output/$(NAME)_2.inv.gz
+
+decls-only-2-large: $(NAME) $(KVASIR_SCRIPT) $(VALGRIND)
+	$(BEFORE_RUN)
+	$(KVASIR_SCRIPT) --ignore-globals --decls-only --nesting-depth=1 --decls-file=- ./$(NAME) $(PROGRAM_ARGS) | $(DAIKON) - -o daikon-output/$(NAME)_2.inv.gz
+	$(AFTER_RUN)
+
+decls-2-large: $(NAME) $(KVASIR_SCRIPT) $(VALGRIND)
+	$(BEFORE_RUN)
+	$(KVASIR_SCRIPT) --ignore-globals  --nesting-depth=1 --dtrace-file=- ./$(NAME) $(PROGRAM_ARGS) | $(DAIKON) - -o daikon-output/$(NAME)_2.inv.gz
+	$(AFTER_RUN)
+
+diffs: $(DIFF_FILES)
+
+diffs-w-daikon: diffs $(INV_DIFFS)
+
+summary: diffs
+	@echo -e "\t["$$(basename `pwd`)"]"
+	@for file in $(DIFF_FILES); do \
+	  if [ -s $$file ]; then \
+	    echo "FAILED  $$file"; \
+	    cat $$file; \
+	  else \
+	    echo "OK      $$file"; \
+	  fi; \
+	done
+
+summary-w-daikon: diffs-w-daikon
+	@echo -e "\t["$$(basename `pwd`)"]"
+	@for file in $(DIFF_FILES) $(INV_DIFFS); do \
+	  if [ -s $$file ]; then \
+	    echo "FAILED  $$file"; \
+	    cat $$file; \
+	  else \
+	    echo "OK      $$file"; \
+	  fi; \
+	done
+
+diffs-if-working:            diffs
+summary-if-working:          summary
+diffs-w-daikon-if-working:   diffs-w-daikon
+summary-w-daikon-if-working: summary-w-daikon
+
+clean:
+	rm -rf $(NAME) $(DIFF_NAME).*.diff $(NAME).out daikon-output ran-kvasir $(EXTRA_JUNK) $(EXTRA_OUTPUTS) $(NAME).inv.gz $(NAME).comp $(NAME).counts $(NAME).dtrace.gz $(NAME).decls $(NAME).[12].dtrace.gz
+	$(CLEAN_SCRIPT)
+
+update-out-goals: $(NAME).out
+	-cp $(NAME).out $(call goal_name,$(NAME).out)
+
+update-counts-goals: $(NAME).counts
+	-cp $(NAME).counts $(call goal_name,$(NAME).counts)
+
+update-decls-goals: daikon-output/$(NAME).decls
+	-cp daikon-output/$(NAME).decls $(call goal_name,$(NAME).decls)
+
+update-dtrace-goals: daikon-output/$(NAME)$(DTRACE_EXT)
+	-cp daikon-output/$(NAME)$(DTRACE_EXT) $(call goal_name,$(NAME).dtrace)
+
+update-inv-goals: daikon-output/$(NAME).invs.txt
+	-cp daikon-output/$(NAME).invs.txt $(call goal_name,$(NAME).invs)
+
+update-comp-goals: $(NAME).comp
+	-cp $(NAME).comp $(call goal_name,$(NAME).comp)
+
+ifeq ($(COUNTS_ONLY),)
+update-goals: update-out-goals update-counts-goals update-decls-goals update-dtrace-goals update-comp-goals update-inv-goals
+else
+update-goals: update-out-goals update-counts-goals update-comp-goals
+endif
+
+kvasir-DC: $(KVASIR_SCRIPT) $(VALGRIND)
+	$(KVASIR_SCRIPT) $(KVASIR_OPTIONS)
+
+$(VALGRIND):
+	$(MAKE) -C ${DAIKONDIR} kvasir
+
+trace: $(NAME) $(KVASIR_SCRIPT) $(VALGRIND)
+	$(BEFORE_RUN)
+	$(KVASIR_SCRIPT) $(KVASIR_OPTIONS) --dyncomp --decls-only --dyncomp-trace --no-var-leader --no-val-leader --no-path-compression ./$(NAME) $(PROGRAM_ARGS) 2>&1 | ${DAIKONDIR}/scripts/merge_tracker.py - $(NAME).db
+	$(AFTER_RUN)

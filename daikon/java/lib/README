@@ -1,0 +1,73 @@
+The easiest way to build and run Daikon is to put daikon.jar on your classpath.
+This directory contains dependences that are put in daikon.jar.
+All .jar files in this directory should contain Java 8 bytecodes,
+so that Daikon will run under Java 8.
+
+bcel-6.4.1.1.jar : https://repo.maven.apache.org/maven2/org/checkerframework/annotatedlib/bcel
+  wget https://repo.maven.apache.org/maven2/org/checkerframework/annotatedlib/bcel/6.4.1.1/bcel-6.4.1.1.jar
+
+bcel-util-1.1.8.jar : https://repo.maven.apache.org/maven2/org/plumelib/bcel-util/
+  wget https://repo.maven.apache.org/maven2/org/plumelib/bcel-util/1.1.8/bcel-util-1.1.8.jar
+  When you update this, remove the old daikon-plumelib.jar then remake it.
+
+checker-framework/ and checker-qual.jar : https://github.com/typetools/checker-framework/releases
+  VER=3.4.0
+  wget https://github.com/typetools/checker-framework/releases/download/checker-framework-$VER/checker-framework-$VER.zip
+  unzip checker-framework-$VER.zip
+  mv -f checker-framework-$VER/checker/dist/checker.jar checker-framework-$VER/checker/dist/javac.jar checker-framework/
+  mv -f checker-framework-$VER/checker/dist/checker-qual.jar .
+  rm -rf checker-framework-$VER.zip checker-framework-$VER
+If environment variable CHECKERFRAMEWORK is set, it is used instead of
+these files.
+
+commons-exec-1.3.jar : https://commons.apache.org/proper/commons-exec/
+
+daikon-plumelib.jar : Contains bcel-util, options, plume-util, and reflection-util, but in package daikon.plumelib.
+To create, run from this directory, using JDK 8 (does not build under JDK 11):
+mkdir -p ~/java && \
+(cd ~/java && \
+(git clone https://github.com/pantsbuild/jarjar jarjar-pantsbuild > /dev/null 2>&1 \
+  || (cd jarjar-pantsbuild && git pull)) && \
+cd jarjar-pantsbuild && \
+./pants doc test ::) && \
+\rm -f daikon-plumelib.jar
+./create-daikon-plumelib.sh
+
+java-getopt-1.0.14.0.1.jar : https://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.checkerframework.annotatedlib%22%20a%3A%22java-getopt%22
+  wget https://repo.maven.apache.org/maven2/org/checkerframework/annotatedlib/java-getopt/1.0.14.0.1/java-getopt-1.0.14.0.1.jar
+
+junit-4.13.jar : https://search.maven.org/search?q=g:junit%20AND%20a:junit
+  wget https://search.maven.org/remotecontent?filepath=junit/junit/4.13/junit-4.13.jar
+
+options-1.0.4.jar : https://search.maven.org/#search%7Cga%7C1%7Coptions
+  wget https://repo.maven.apache.org/maven2/org/plumelib/options/1.0.4/options-1.0.4.jar
+  When you update this, remove the old daikon-plumelib.jar then remake it (see above).
+
+plume-util-1.1.4.jar : https://search.maven.org/#search%7Cga%7C1%7Cplume-util
+  wget https://repo.maven.apache.org/maven2/org/plumelib/plume-util/1.1.4/plume-util-1.1.4.jar
+  When you update this, remove the old daikon-plumelib.jar then remake it.
+
+reflection-util-0.2.2.jar : https://repo.maven.apache.org/maven2/org/plumelib/reflection-util/
+  wget https://repo.maven.apache.org/maven2/org/plumelib/reflection-util/0.2.2/reflection-util-0.2.2.jar
+  When you update this, remove the old daikon-plumelib.jar then remake it.
+
+require-javadoc-0.3.0-all.jar : https://github.com/plume-lib/require-javadoc/releases
+  wget https://github.com/plume-lib/require-javadoc/releases/download/v0.3.0/require-javadoc-0.3.0-all.jar
+
+---------------------------------------------------------------------------
+
+Motivation for daikon-plumelib.jar:
+The daikon.plumelib classes are used only by the run-time support for
+instrumentation tools (that is, anything that might run in the same JVM as
+a target program), namely Chicory and DynComp.  All other parts of Daikon
+use the standard plume-lib jar files.
+Suppose that both DynComp and the target program both used plume-lib.
+If DynComp instrumented plume-lib, then an infinite recursion would
+result; if DynComp did not instrument plume-lib, then DynComp would
+miss some computations of the target program.  Thus, DynComp needs to
+be completely separate from the target program -- they should share no
+code.  To enable DynComp to work properly on a program that uses
+plume-lib, DynComp must not use plume-lib.  Therefore, DynComp uses a
+renamed version of plume-lib that is not used by any other program,
+including Daikon itself.  DynComp can instrument the plume package,
+but it does not instrument daikon.plumelib.

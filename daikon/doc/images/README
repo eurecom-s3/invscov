@@ -1,0 +1,15 @@
+These are images for inclusion in the manual.
+
+Texinfo uses these formats:
+ (.png or .jpg), .eps, .pdf, .txt
+
+Where the daikon-logo files came from:
+ .gif	the original
+	(daikon-logo.gif came from a .bmp earlier on)
+ .eps   sam2p daikon-logo.png daikon-logo.eps
+ .pdf	generated using epstopdf by doc/Makefile
+ .png	xv daikon-logo.gif, then save as PNG
+ .jpg	xv daikon-logo.gif, then save as JPEG
+	(used only if xv crashes when trying to write PNG)
+ .txt   aview daikon-logo.pnm, fiddle with options, save,
+        manually remove border

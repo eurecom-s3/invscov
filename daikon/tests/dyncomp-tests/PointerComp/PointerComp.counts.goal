@@ -1,0 +1,4 @@
+..inc() ENTER/15: 1 EXIT0/15: 1
+..interactAfter() ENTER/21: 1 EXIT0/21: 1
+..internalInteraction() ENTER/27: 1 EXIT0/27: 1
+..main() ENTER/3: 1 EXIT0/6: 1

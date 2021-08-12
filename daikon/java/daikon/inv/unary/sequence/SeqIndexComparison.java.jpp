@@ -1,0 +1,517 @@
+#if 0
+  // Do not attempt to compile this file with a Java compiler such as javac.
+  // You first need to preprocess it with cpp, the C preprocessor.
+  // The correct way to build the system is to run 'make'.
+#endif
+
+#if (defined(EQUAL) || defined(NONEQUAL) || defined(LESSTHAN) || defined(LESSEQUAL) || defined(GREATERTHAN) || defined(GREATEREQUAL))
+  #define SUPERCLASS SingleScalarSequence
+  #define PRIMITIVE long
+  #define DOUBLE_CAST(x) (double)(x)
+  #define LONG_CAST(x) (x)
+  #define ELEMENTISTYPE elementIsIntegral()
+  #define ASSERTYPE INT_ARRAY
+  #define BASEISTYPE baseIsIntegral
+  #define SEQ_INDEX_LESSTHAN SeqIndexIntLessThan
+  #define SEQ_INDEX_GREATERTHAN SeqIndexIntGreaterThan
+  #define SEQ_INDEX_EQUAL SeqIndexIntEqual
+  #define VALUE_SET ValueSet.ValueSetScalarArray
+  #define SUBSEQUENCE SubSequence
+#elif defined(EQUALFLOAT) || defined(NONEQUALFLOAT) || defined(LESSTHANFLOAT) || defined(LESSEQUALFLOAT) || defined(GREATERTHANFLOAT) || defined(GREATEREQUALFLOAT)
+  #define SUPERCLASS SingleFloatSequence
+  #define PRIMITIVE double
+  #define DOUBLE_CAST(x) (x)
+  #define LONG_CAST(x) (long)(x)
+  #define ELEMENTISTYPE elementIsFloat()
+  #define ASSERTYPE DOUBLE_ARRAY
+  #define BASEISTYPE baseIsFloat
+  #define SEQ_INDEX_LESSTHAN SeqIndexFloatLessThan
+  #define SEQ_INDEX_GREATERTHAN SeqIndexFloatGreaterThan
+  #define SEQ_INDEX_EQUAL SeqIndexFloatEqual
+  #define VALUE_SET ValueSet.ValueSetFloatArray
+  #define SUBSEQUENCE SubSequenceFloat
+#endif
+
+#define STRING(foo) #foo
+
+#if defined(EQUAL)
+  #define CLASSNAME SeqIndexIntEqual
+  #define EQUALS(a,b) (a == b)
+  #define SYMMETRIC_OP
+  #define EQUALShtml ==
+  #define EQUALScode ==
+  #define EQUALSstring "=="
+  #define EQUALSSIMPLIFYstring "EQ"
+  #define EQUALSQUANTstring "Equal"
+#elif defined(EQUALFLOAT)
+  #define CLASSNAME SeqIndexFloatEqual
+  #define EQUALS(a,b) Global.fuzzy.eq(a, b)
+  #define SYMMETRIC_OP
+  #define EQUALShtml ==
+  #define EQUALScode ==
+  #define EQUALSstring "=="
+  #define EQUALSSIMPLIFYstring "EQ"
+  #define EQUALSQUANTstring "Equal"
+#elif defined(NONEQUAL)
+  #define CLASSNAME SeqIndexIntNonEqual
+  #define EQUALS(a,b) (a != b)
+  #define SYMMETRIC_OP
+  #define EQUALShtml !=
+  #define EQUALScode !=
+  #define EQUALSstring "!="
+  #define EQUALSSIMPLIFYstring "NEQ"
+  #define EQUALSQUANTstring "NotEqual"
+#elif defined(NONEQUALFLOAT)
+  #define CLASSNAME SeqIndexFloatNonEqual
+  #define EQUALS(a,b) Global.fuzzy.ne(a, b)
+  #define SYMMETRIC_OP
+  #define EQUALShtml !=
+  #define EQUALScode !=
+  #define EQUALSstring "!="
+  #define EQUALSSIMPLIFYstring "NEQ"
+  #define EQUALSQUANTstring "NotEqual"
+#elif defined(LESSTHAN)
+  #define CLASSNAME SeqIndexIntLessThan
+  #define CLASS_SWAP SeqIndexIntGreaterThan
+  #define EQUALS(a,b) (a < b)
+  #define EQUALShtml &lt;
+  #define EQUALScode <
+  #define EQUALSstring "<"
+  #define EQUALSSIMPLIFYstring "<"
+  #define EQUALSQUANTstring "Lt"
+#elif defined(LESSTHANFLOAT)
+  #define CLASSNAME SeqIndexFloatLessThan
+  #define CLASS_SWAP SeqIndexFloatGreaterThan
+  #define EQUALS(a,b) Global.fuzzy.lt(a, b)
+  #define EQUALShtml &lt;
+  #define EQUALScode <
+  #define EQUALSstring "<"
+  #define EQUALSSIMPLIFYstring "<"
+  #define EQUALSQUANTstring "Lt"
+#elif defined(LESSEQUAL)
+  #define CLASSNAME SeqIndexIntLessEqual
+  #define CLASS_SWAP SeqIndexIntGreaterEqual
+  #define EQUALS(a,b) (a <= b)
+  #define EQUALShtml &le;
+  #define EQUALScode <=
+  #define EQUALSstring "<="
+  #define EQUALSSIMPLIFYstring "<="
+  #define EQUALSQUANTstring "Lte"
+#elif defined(LESSEQUALFLOAT)
+  #define CLASSNAME SeqIndexFloatLessEqual
+  #define CLASS_SWAP SeqIndexFloatGreaterEqual
+  #define EQUALS(a,b) Global.fuzzy.lte(a, b)
+  #define EQUALShtml &le;
+  #define EQUALScode <=
+  #define EQUALSstring "<="
+  #define EQUALSSIMPLIFYstring "<="
+  #define EQUALSQUANTstring "Lte"
+#elif defined(GREATERTHAN)
+  #define CLASSNAME SeqIndexIntGreaterThan
+  #define CLASS_SWAP SeqIndexIntLessThan
+  #define EQUALS(a,b) (a > b)
+  #define EQUALShtml &gt;
+  #define EQUALScode >
+  #define EQUALSstring ">"
+  #define EQUALSSIMPLIFYstring ">"
+  #define EQUALSQUANTstring "Gt"
+#elif defined(GREATERTHANFLOAT)
+  #define CLASSNAME SeqIndexFloatGreaterThan
+  #define CLASS_SWAP SeqIndexFloatLessThan
+  #define EQUALS(a,b) Global.fuzzy.gt(a, b)
+  #define EQUALShtml &gt;
+  #define EQUALScode >
+  #define EQUALSstring ">"
+  #define EQUALSSIMPLIFYstring ">"
+  #define EQUALSQUANTstring "Gt"
+#elif defined(GREATEREQUAL)
+  #define CLASSNAME SeqIndexIntGreaterEqual
+  #define CLASS_SWAP SeqIndexIntLessEqual
+  #define EQUALS(a,b) (a >= b)
+  #define EQUALShtml &ge;
+  #define EQUALScode >=
+  #define EQUALSstring ">="
+  #define EQUALSSIMPLIFYstring ">="
+  #define EQUALSQUANTstring "Gte"
+#elif defined(GREATEREQUALFLOAT)
+  #define CLASSNAME SeqIndexFloatGreaterEqual
+  #define CLASS_SWAP SeqIndexFloatLessEqual
+  #define EQUALS(a,b) Global.fuzzy.gte(a, b)
+  #define EQUALShtml &ge;
+  #define EQUALScode >=
+  #define EQUALSstring ">="
+  #define EQUALSSIMPLIFYstring ">="
+  #define EQUALSQUANTstring "Gte"
+#else
+  #error "EQUAL, NONEQUAL, LESSTHAN, LESSEQUAL, GREATERTHAN, GREATEREQUAL, EQUALFLOAT, NONEQUALFLOAT, LESSTHANFLOAT, LESSEQUALFLOAT, GREATERTHANFLOAT, or GREATEREQUALFLOAT must be defined"
+#endif
+
+// ***** This file is automatically generated from SeqIndexComparison.java.jpp
+
+package daikon.inv.unary.sequence;
+
+import daikon.*;
+import daikon.Quantify.QuantFlags;
+import daikon.inv.*;
+import daikon.inv.binary.twoSequence.*;
+import daikon.suppress.*;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.logging.Logger;
+import org.checkerframework.checker.interning.qual.Interned;
+import org.checkerframework.checker.lock.qual.GuardSatisfied;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
+import org.checkerframework.dataflow.qual.SideEffectFree;
+import org.plumelib.util.Intern;
+import typequals.prototype.qual.NonPrototype;
+import typequals.prototype.qual.Prototype;
+
+/**
+ * Represents an invariant over sequences of PRIMITIVE values between the index of an element of the
+ * sequence and the element itself. Prints as {@code x[i] EQUALScode i}.
+ */
+public class CLASSNAME extends SUPERCLASS {
+  // We are Serializable, so we specify a version to allow changes to
+  // method signatures without breaking serialization.  If you add or
+  // remove fields, you should change this number to the current date.
+  static final long serialVersionUID = 20040203L;
+
+  /** Debug tracer. */
+  public static final Logger debug =
+    Logger.getLogger("daikon.inv.unary.sequence." + STRING(CLASSNAME));
+
+  // Variables starting with dkconfig_ should only be set via the
+  // daikon.config.Configuration interface.
+  /** Boolean. True iff CLASSNAME invariants should be considered. */
+  public static boolean dkconfig_enabled = false;
+
+  private @Prototype CLASSNAME() {
+    super();
+  }
+
+  protected CLASSNAME(PptSlice slice) {
+    super(slice);
+    assert slice != null;
+    assert var().rep_type == ProglangType.ASSERTYPE;
+  }
+
+  private static @Prototype CLASSNAME proto = new @Prototype CLASSNAME();
+
+  /** Returns the prototype invariant for CLASSNAME */
+  public static @Prototype CLASSNAME get_proto() {
+    return proto;
+  }
+
+  /** returns whether or not we are enabled */
+  @Override
+  public boolean enabled() {
+    return (dkconfig_enabled && !dkconfig_SeqIndexDisableAll);
+  }
+
+  /** Check that SeqIndex comparisons make sense over these vars. */
+  @Override
+  public boolean instantiate_ok(VarInfo[] vis) {
+
+    if (!valid_types(vis)) {
+      return false;
+    }
+
+    // Don't compare indices to object addresses.
+    ProglangType elt_type = vis[0].file_rep_type.elementType();
+    if (!elt_type.BASEISTYPE()) {
+      return false;
+    }
+
+    // Make sure that the indices are comparable to the elements
+    VarInfo seqvar = vis[0];
+    assert seqvar.comparability != null;
+    VarComparability elt_compar = seqvar.comparability.elementType();
+    VarComparability index_compar = seqvar.comparability.indexType(0);
+    if (!VarComparability.comparable(elt_compar, index_compar)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /** Instantiate the invariant on the specified slice. */
+  @Override
+  public CLASSNAME instantiate_dyn(@Prototype CLASSNAME this, PptSlice slice) {
+    return new CLASSNAME(slice);
+  }
+
+#if defined(LESSEQUAL) || defined(LESSEQUALFLOAT) || defined(GREATEREQUAL) || defined(GREATEREQUALFLOAT)
+  /** NI suppressions, initialized in get_ni_suppressions() */
+  private static @Nullable NISuppressionSet suppressions = null;
+
+  /** returns the ni-suppressions for CLASSNAME */
+  @Pure
+  @Override
+  public @NonNull NISuppressionSet get_ni_suppressions() {
+    if (suppressions == null) {
+      #if defined(LESSEQUAL) || defined(LESSEQUALFLOAT) || defined(GREATEREQUAL) || defined(GREATEREQUALFLOAT)
+      NISuppressee suppressee = new NISuppressee(CLASSNAME.class, 1);
+      #endif
+
+      // suppressor definitions (used in suppressions below)
+      #if defined(LESSEQUAL) || defined(LESSEQUALFLOAT) || defined(GREATEREQUAL) || defined(GREATEREQUALFLOAT)
+      NISuppressor v1_eq_v2 = new NISuppressor(0, SEQ_INDEX_EQUAL.class);
+      #endif
+      #if defined(GREATEREQUAL) || defined(GREATEREQUALFLOAT)
+      NISuppressor v1_gt_v2 = new NISuppressor(0,SEQ_INDEX_GREATERTHAN.class);
+      #endif
+      #if defined(LESSEQUAL) || defined(LESSEQUALFLOAT)
+      NISuppressor v1_lt_v2 = new NISuppressor(0, SEQ_INDEX_LESSTHAN.class);
+      #endif
+
+      suppressions = new NISuppressionSet(
+          new NISuppression[]{
+            #if defined(LESSEQUAL) || defined(LESSEQUALFLOAT)
+              // (v1[i] == i) ==> v1[i] <= i
+              new NISuppression(v1_eq_v2, suppressee),
+              // (v1[i] < i) ==> v1[i] <= i
+              new NISuppression(v1_lt_v2, suppressee),
+            #elif defined(GREATEREQUAL) || defined(GREATEREQUALFLOAT)
+              // (v1[i] == i) ==> v1[i] >= i
+              new NISuppression(v1_eq_v2, suppressee),
+              // (v1[i] > i) ==> v1[i] >= i
+              new NISuppression(v1_gt_v2, suppressee),
+            #endif
+        });
+    }
+    return suppressions;
+  }
+#else
+  /** returns the ni-suppressions for CLASSNAME */
+  @Pure
+  @Override
+  public @Nullable NISuppressionSet get_ni_suppressions() {
+    return null;
+  }
+#endif
+
+  protected Invariant resurrect_done_swapped() {
+    #if defined(SYMMETRIC_OP)
+      return this;
+    #else
+      return new CLASS_SWAP(ppt);
+    #endif
+  }
+
+  public String getComparator() {
+    return EQUALSstring;
+  }
+
+  @SideEffectFree
+  @Override
+  public String format_using(@GuardSatisfied CLASSNAME this, OutputFormat format) {
+    if (format.isJavaFamily()) {
+      return format_java_family(format);
+    }
+
+    // TODO: Eliminate the unnecessary format_xxx() below if the
+    // format_java_family() can handle all the Java family output.
+
+    if (format == OutputFormat.DAIKON) {
+      return format_daikon();
+    }
+    if (format == OutputFormat.ESCJAVA) {
+      return format_esc();
+    }
+    if (format == OutputFormat.CSHARPCONTRACT) {
+      return format_csharp_contract();
+    }
+    if (format == OutputFormat.SIMPLIFY) {
+      return format_simplify();
+    }
+
+    return format_unimplemented(format);
+  }
+
+  public String format_daikon(@GuardSatisfied CLASSNAME this) {
+
+    // If this is an array/container and not a subsequence
+    if (var().isDerivedSubSequenceOf() == null) {
+      return var().apply_subscript("i") + " " + EQUALSstring + " i";
+    } else {
+      return var().name() + " " + EQUALSstring + " (index)";
+    }
+  }
+
+  // Bad code here: if the first index is changed from i this breaks
+  public String format_esc(@GuardSatisfied CLASSNAME this) {
+    String[] form = VarInfo.esc_quantify(var());
+    return form[0] + "(" + form[1] + " " + EQUALSstring + " i)" + form[2];
+  }
+
+  public String format_csharp_contract(@GuardSatisfied CLASSNAME this) {
+    String[] split = var().csharp_array_split();
+    return "Contract.ForAll(0, " + split[0] + ".Count(), i => " + split[0] + "[i]" + split[1] + " " + EQUALSstring + " i)";
+  }
+
+  public String format_java_family(@GuardSatisfied CLASSNAME this, OutputFormat format) {
+    return "daikon.Quant.elts" + EQUALSQUANTstring + "Index("
+      + var().name_using(format) + ")";
+  }
+
+  public String format_simplify(@GuardSatisfied CLASSNAME this) {
+    String[] form = VarInfo.simplify_quantify(QuantFlags.include_index(),
+                                               var());
+    return form[0] + "(" + EQUALSSIMPLIFYstring + " " + form[1] + " " + form[2] + ")"
+      + form[3];
+  }
+
+  @Override
+  public InvariantStatus check_modified(PRIMITIVE @Interned [] a, int count) {
+    for (int i = 0; i < a.length; i++) {
+      if (!EQUALS(a[i], i)) {
+        return InvariantStatus.FALSIFIED;
+      }
+    }
+    return InvariantStatus.NO_CHANGE;
+  }
+
+  @Override
+  public InvariantStatus add_modified(PRIMITIVE @Interned [] a, int count) {
+
+    if (logDetail()) {
+      log("Entered add_modified: ppt.num_values()==%s, sample==%s",
+           ppt.num_values(), Arrays.toString(a));
+    }
+    InvariantStatus stat = check_modified(a, count);
+    if (logDetail()) {
+      log("Exiting add_modified status = %s", stat);
+    }
+
+    return stat;
+  }
+
+  @Override
+  @SuppressWarnings("UnnecessaryParentheses")  // generated code, parentheses are sometimes needed
+  protected double computeConfidence() {
+
+    // Make sure there have been some elements in the sequence
+    VALUE_SET vs = (VALUE_SET) ppt.var_infos[0].get_value_set();
+    if (vs.elem_cnt() == 0) {
+      return Invariant.CONFIDENCE_UNJUSTIFIED;
+    }
+
+    int num_values = ppt.num_values();
+    if (num_values == 0) {
+      return Invariant.CONFIDENCE_UNJUSTIFIED;
+    }
+
+    #if defined(EQUAL) || defined(EQUALFLOAT)
+      return Invariant.CONFIDENCE_JUSTIFIED;
+    #elif defined(NONEQUAL) || defined(NONEQUALFLOAT)
+      int max_indx = vs.max_length() - 1;
+      if ((vs.min() > max_indx) || (vs.max() < 0)) {
+        return Invariant.CONFIDENCE_UNJUSTIFIED;
+      } else {
+        long overlap = LONG_CAST(Math.min(vs.max(), max_indx)
+                               - Math.max(vs.min(), 0));
+        if (overlap < 0) {
+          return Invariant.CONFIDENCE_UNJUSTIFIED;
+        }
+        overlap++;
+        double range1 = (double)max_indx + 1;
+        double range2 = DOUBLE_CAST(vs.max()) - vs.min() + 1;
+
+        // probability of being equal by chance
+        //  = (overlap/range1) * (overlap/range2) * (1/overlap)
+        //  = overlap/(range1 * range2)
+
+        double confidence_one_nonequal = ((double)overlap)/(range1 * range2);
+
+        // The factor of 2 is a hack, but this seems too stringent otherwise
+        confidence_one_nonequal = Math.min(1.0, 2.0 * confidence_one_nonequal);
+
+        assert ! Double.isNaN(confidence_one_nonequal)
+                          && confidence_one_nonequal >= 0
+                          && confidence_one_nonequal <= 1
+        : "overlap=" + overlap
+                          + ", range1=" + range1
+                          + ", range2=" + range2
+                          ;
+        return 1 - Math.pow(1 - confidence_one_nonequal, vs.elem_cnt());
+      }
+    #else
+      return 1 - Math.pow(.5, num_values);
+    #endif
+  }
+
+  @Pure
+  @Override
+  public boolean isSameFormula(Invariant other) {
+    return true;
+  }
+
+  @Pure
+  @Override
+  public boolean isExclusiveFormula(Invariant other) {
+    return false;
+  }
+
+  // Look up a previously instantiated invariant.
+  public static @Nullable CLASSNAME find(PptSlice ppt) {
+    assert ppt.arity() == 1;
+    for (Invariant inv : ppt.invs) {
+      if (inv instanceof CLASSNAME) {
+        return (CLASSNAME) inv;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Checks to see if this is obvious over the specified variables Implements the following checks:
+   *
+   * <pre>
+   *    (A[] subsequence B[]) ^ (B[i] op i) &rArr; A[i] op i
+   * </pre>
+   *
+   * JHP: Its not obvious (to me) that this is true except when the subsequence starts at index
+   * 0. If B[] = {0, 1, 2, 3, 4} and A[] = {2, 3, 4}, A[] is a subsequence of B[] and B[i] == i, but
+   * A[i] = i is not true.
+   */
+  @Pure
+  @Override
+  public @Nullable DiscardInfo isObviousDynamically(VarInfo[] vis) {
+
+    DiscardInfo super_result = super.isObviousDynamically(vis);
+    if (super_result != null) {
+      return super_result;
+    }
+
+    VarInfo seqvar = vis[0];
+
+    // For each other sequence variable, if it is a supersequence of this
+    // one and it has the same invariant, then this one is obvious.
+    // We have to check for the same equality set here, because
+    // isObviousDynamically is called for each member of the equality set.
+    // We don't want other members of our own equality set to make this obvious
+    PptTopLevel pptt = ppt.parent;
+    for (int i = 0; i < pptt.var_infos.length; i++) {
+      VarInfo vi = pptt.var_infos[i];
+      if (vi.equalitySet == seqvar.equalitySet) {
+        continue;
+      }
+      if (SUBSEQUENCE.isObviousSubSequenceDynamically(this, seqvar, vi)) {
+        PptSlice1 other_slice = pptt.findSlice(vi);
+        if (other_slice != null) {
+          CLASSNAME other_sine = CLASSNAME.find(other_slice);
+          if ((other_sine != null) && other_sine.enoughSamples()) {
+            return new DiscardInfo(this, DiscardCode.obvious,
+                        "The invariant " + format() + " over var "
+                       + seqvar.name() + " also holds over "
+                       +" the supersequence " + vi.name());
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+}

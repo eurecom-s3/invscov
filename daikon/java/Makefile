@@ -1,0 +1,1887 @@
+### User customizations
+
+# Put user-specific changes in your own Makefile.user file in this directory.
+# Make will silently continue if Makefile.user does not exist.
+-include Makefile.user
+
+# Don't let the user override this; it should refer to the current directory.
+DAIKONDIR := $(realpath $(dir $(lastword $(MAKEFILE_LIST)))..)
+
+DAIKONSCRIPTS ?= ${DAIKONDIR}/scripts
+
+PLUMESCRIPTS ?= ${DAIKONDIR}/utils/plume-scripts
+HTMLTOOLS ?= ${DAIKONDIR}/utils/html-tools
+
+USER ?= daikonbuild
+
+JAVA ?= java -ea
+# For debugging, add -verbose flag to javac command
+# JAVAC ?= javac -g -Xlint:unchecked
+JAVAC ?= javac
+JAVADOC ?= javadoc
+JAR ?= jar
+
+# Add flags like "-source 8" or "-target 8" to JAVAC_TARGET_FLAGS.
+# That variable appears last and overrides the values we provide here.
+JAVAC_ARGS ?= -g -XDignore.symbol.file -Xmaxerrs 100000 -Xmaxwarns 100000 -source 8 -target 8 -Werror -Xlint:-path -Xlint:-options -Xlint:-classfile ${JAVAC_TARGET_FLAGS}
+
+INSTALL ?= /usr/bin/install
+
+ifdef CHECKERFRAMEWORK
+  CHECKERFRAMEWORK_JAR_DIR ?= ${CHECKERFRAMEWORK}/checker/dist
+endif
+CHECKERFRAMEWORK_JAR_DIR ?= ${DAIKONDIR}/java/lib/checker-framework
+CHECKERFRAMEWORK_JAR ?= ${CHECKERFRAMEWORK_JAR_DIR}/checker.jar
+CHECKERFRAMEWORK_JAVAC ?= ${CHECKERFRAMEWORK_JAR_DIR}/javac.jar
+
+
+### end of user customizations
+
+# Not := because DAIKON_CLASSPATH is set later in this file.
+JAVAC_COMMAND = ${JAVAC} -cp ${DAIKON_CLASSPATH} -Xlint -J-Xmx2600m ${JAVAC_ARGS}
+JAVA_COMMAND = ${JAVA} -cp ${DAIKON_CLASSPATH}
+JAVADOC_COMMAND = ${JAVADOC} -cp ${DAIKON_CLASSPATH}
+
+
+###########################################################################
+### Variables
+###
+
+## Classpath
+
+## Daikon compiled files
+ifeq "$(wildcard ${DAIKONDIR}/java/lib/daikon-plumelib.jar)" "${DAIKONDIR}/java/lib/daikon-plumelib.jar"
+  # Add jar files that only exist for the development version, not the
+  # distributed version, of Daikon.  The if clause avoids a (harmless but
+  # annoying) javac error message that they don't exist.
+  DAIKON_CLASSPATH := ${CHECKERFRAMEWORK_JAR}:${DAIKONDIR}/java/lib/*:${DAIKONDIR}/java
+else
+  DAIKON_CLASSPATH := ${DAIKONDIR}/java
+endif
+
+## Add tools.jar and rt.jar, if they exist
+ifeq ($(shell uname), Darwin)
+  JAVA_HOME ?= $(/usr/libexec/java_home)
+else
+  JAVA_HOME ?= $(shell readlink -f /usr/bin/javac | sed "s:bin/javac::")
+endif
+ifneq "$(wildcard ${JAVA_HOME}/lib/tools.jar)" ""
+  DAIKON_CLASSPATH := $(DAIKON_CLASSPATH):${JAVA_HOME}/lib/tools.jar
+endif
+ifneq "$(wildcard ${JAVA_HOME}/jre/lib/rt.jar)" ""
+  DAIKON_CLASSPATH := $(DAIKON_CLASSPATH):${JAVA_HOME}/jre/lib/rt.jar
+endif
+
+# -docletpath doesn't seem to respect path wildcards as -cp does
+DOCLETPATH := $(wildcard ${DAIKONDIR}/java/lib/plume-util-*.jar):$(wildcard ${DAIKONDIR}/java/lib/bcel-util-*.jar):$(wildcard ${DAIKONDIR}/java/lib/reflection-util-*.jar):${DAIKON_CLASSPATH}:${DAIKONDIR}/java/lib/daikon-plumelib.jar
+
+
+# This command should run after the AUTO_GENERATED_FILES are generated, or
+# else AUTO_GENERATED_FILES should be appended to it (without duplication).
+# Therefore, this assignment uses "=" instead of ":=".
+# DO NOT USE THESE in dependencies or the
+# find command will get run multiple times.  USE AUTO_GENERATED_FILES instead.
+# "-o -path './jakarta-oro*/src/java/examples'" does not work for non-GNU find.
+# " | perl -pi -e 's/^\.\///g'" to remove leading "./"
+SORT_DIRECTORY_ORDER = ${PLUMESCRIPTS}/sort-directory-order
+ifneq "$(wildcard ${SORT_DIRECTORY_ORDER})" "${SORT_DIRECTORY_ORDER}"
+  # Until "make ../plume-scripts" has been run, sort-directory-order is not available.
+  SORT_DIRECTORY_ORDER = sort
+endif
+DAIKON_JAVA_FILES = $(shell find daikon/ -name '*.java' -not -name '*\#*' | ${SORT_DIRECTORY_ORDER})
+JAVA_FILES = $(shell find . -follow \( -name '*daikon-java*' -o -name '*daikon-instrumented*' -o -name 'PrototypeChecker.java' -o -name 'VIndexChecker.java' -o -name 'VIndexAnnotatedTypeFactory.java' -o -name 'ReturnBytecodes.java' -o -name 'SplitterFactoryTest.java' -o -name '\.\#*' \) -prune -o -name '*.java' -print | grep -v '/jakarta-oro.*/src/java/examples/' | ${SORT_DIRECTORY_ORDER})
+# Copied from
+JAVA_FILES_FOR_STYLE = $(shell find . -follow \( -name '*daikon-java*' -o -name '*daikon-instrumented*' -o -name 'PrototypeChecker.java' -o -name 'VIndexChecker.java' -o -name 'VIndexAnnotatedTypeFactory.java' -o -name 'ReturnBytecodes.java' -o -name 'SplitterFactoryTest.java' -o -name 'WeakHasherMap.java' -o -name 'WeakIdentityHashMap.java' -o -name '\.\#*' -o -path './jtb' \) -prune -o -name '*.java' -print | grep -v '/jakarta-oro.*/src/java/examples/' | ${SORT_DIRECTORY_ORDER})
+# Other find commands should perhaps use the recursive grep form instead
+JAVA_FILES_FOR_FORMAT = $(shell grep -r --include '*.java' --exclude-dir '*daikon-java*' --exclude-dir '*daikon-instrumented*' --exclude WeakHasherMap.java --exclude WeakIdentityHashMap.java -L 'This file is automatically generated' . | grep -v "^./jtb" | ${SORT_DIRECTORY_ORDER})
+#                    $(shell find binary_variables/ -name '*.java' -print)
+
+TAG_FILES = $(shell find . -follow \( -name '*daikon-java*' \) -prune -o \( -name '*.java' -o -name '*.java.jpp' \) -print | grep -v '/\.\#' | ${SORT_DIRECTORY_ORDER})
+TAG_FILES_NO_JTB = $(shell find . -follow \( -name '*daikon-java*' \) -prune -o \( -path './jtb' \) -prune -o \( -name '*.java' -o -name '*.java.jpp' \) -print | grep -v '/\.\#' | ${SORT_DIRECTORY_ORDER})
+
+# When removing files from this list, add them to OLD_AUTO_GENERATED_FILES.
+AUTO_GENERATED_FILES = \
+	daikon/PptSlice1.java \
+	daikon/PptSlice2.java \
+	daikon/PptSlice3.java \
+	daikon/Quant.java \
+	daikon/inv/ternary/threeScalar/FunctionBinary.java \
+	daikon/inv/ternary/threeScalar/FunctionBinaryFloat.java \
+	daikon/inv/ternary/threeScalar/ThreeScalar.java \
+	daikon/inv/ternary/threeScalar/ThreeFloat.java \
+	daikon/inv/ternary/threeScalar/LinearTernaryCore.java \
+	daikon/inv/ternary/threeScalar/LinearTernaryCoreFloat.java \
+	daikon/inv/ternary/threeScalar/LinearTernary.java \
+	daikon/inv/ternary/threeScalar/LinearTernaryFloat.java \
+	daikon/inv/unary/LowerBoundCore.java \
+	daikon/inv/unary/UpperBoundCore.java \
+	daikon/inv/unary/LowerBoundCoreFloat.java \
+	daikon/inv/unary/UpperBoundCoreFloat.java \
+	daikon/inv/unary/scalar/LowerBound.java \
+	daikon/inv/unary/scalar/UpperBound.java \
+	daikon/inv/unary/scalar/LowerBoundFloat.java \
+	daikon/inv/unary/scalar/UpperBoundFloat.java \
+	daikon/inv/unary/scalar/OneOfScalar.java \
+	daikon/inv/unary/scalar/OneOfFloat.java \
+	daikon/inv/unary/string/OneOfString.java \
+	daikon/inv/unary/scalar/NonZero.java \
+	daikon/inv/unary/scalar/NonZeroFloat.java \
+	daikon/inv/unary/scalar/RangeInt.java \
+	daikon/inv/unary/scalar/RangeFloat.java \
+	daikon/inv/unary/sequence/EltRangeInt.java \
+	daikon/inv/unary/sequence/EltRangeFloat.java \
+	daikon/inv/unary/sequence/OneOfSequence.java \
+	daikon/inv/unary/sequence/OneOfFloatSequence.java \
+	daikon/inv/unary/sequence/EltOneOf.java \
+	daikon/inv/unary/sequence/EltOneOfFloat.java \
+	daikon/inv/unary/sequence/EltLowerBound.java \
+	daikon/inv/unary/sequence/EltLowerBoundFloat.java \
+	daikon/inv/unary/sequence/EltUpperBound.java \
+	daikon/inv/unary/sequence/EltUpperBoundFloat.java \
+	daikon/inv/unary/sequence/NoDuplicates.java \
+	daikon/inv/unary/sequence/NoDuplicatesFloat.java \
+	daikon/inv/unary/sequence/SeqIndexIntEqual.java \
+	daikon/inv/unary/sequence/SeqIndexIntNonEqual.java \
+	daikon/inv/unary/sequence/SeqIndexIntGreaterThan.java \
+	daikon/inv/unary/sequence/SeqIndexIntGreaterEqual.java \
+	daikon/inv/unary/sequence/SeqIndexIntLessThan.java \
+	daikon/inv/unary/sequence/SeqIndexIntLessEqual.java \
+	daikon/inv/unary/sequence/SeqIndexFloatEqual.java \
+	daikon/inv/unary/sequence/SeqIndexFloatNonEqual.java \
+	daikon/inv/unary/sequence/SeqIndexFloatGreaterThan.java \
+	daikon/inv/unary/sequence/SeqIndexFloatGreaterEqual.java \
+	daikon/inv/unary/sequence/SeqIndexFloatLessThan.java \
+	daikon/inv/unary/sequence/SeqIndexFloatLessEqual.java \
+	daikon/inv/unary/sequence/CommonSequence.java \
+	daikon/inv/unary/sequence/CommonFloatSequence.java \
+	daikon/inv/unary/sequence/EltNonZero.java \
+	daikon/inv/unary/sequence/EltNonZeroFloat.java \
+	daikon/inv/unary/sequence/EltwiseIntComparison.java \
+	daikon/inv/unary/sequence/EltwiseFloatComparison.java \
+	daikon/inv/unary/sequence/EltwiseIntEqual.java \
+	daikon/inv/unary/sequence/EltwiseIntLessThan.java \
+	daikon/inv/unary/sequence/EltwiseIntLessEqual.java \
+	daikon/inv/unary/sequence/EltwiseIntGreaterThan.java \
+	daikon/inv/unary/sequence/EltwiseIntGreaterEqual.java \
+	daikon/inv/unary/sequence/EltwiseFloatEqual.java \
+	daikon/inv/unary/sequence/EltwiseFloatLessThan.java \
+	daikon/inv/unary/sequence/EltwiseFloatLessEqual.java \
+	daikon/inv/unary/sequence/EltwiseFloatGreaterThan.java \
+	daikon/inv/unary/sequence/EltwiseFloatGreaterEqual.java \
+	daikon/inv/unary/stringsequence/EltOneOfString.java \
+	daikon/inv/unary/stringsequence/OneOfStringSequence.java \
+	daikon/inv/binary/sequenceScalar/Member.java \
+	daikon/inv/binary/sequenceString/MemberString.java \
+	daikon/inv/binary/sequenceString/SequenceString.java \
+	daikon/inv/binary/sequenceScalar/MemberFloat.java \
+	daikon/inv/binary/sequenceScalar/SeqIntLessThan.java \
+	daikon/inv/binary/sequenceScalar/SeqIntGreaterThan.java \
+	daikon/inv/binary/sequenceScalar/SeqIntLessEqual.java \
+	daikon/inv/binary/sequenceScalar/SeqIntGreaterEqual.java\
+	daikon/inv/binary/sequenceScalar/SeqIntEqual.java \
+	daikon/inv/binary/sequenceScalar/SeqFloatLessThan.java \
+	daikon/inv/binary/sequenceScalar/SeqFloatGreaterThan.java \
+	daikon/inv/binary/sequenceScalar/SeqFloatLessEqual.java \
+	daikon/inv/binary/sequenceScalar/SeqFloatGreaterEqual.java \
+	daikon/inv/binary/sequenceScalar/SeqFloatEqual.java \
+	daikon/inv/binary/sequenceScalar/SequenceScalar.java \
+	daikon/inv/binary/sequenceScalar/SequenceFloat.java \
+	daikon/inv/binary/twoScalar/IntEqual.java \
+	daikon/inv/binary/twoScalar/FloatEqual.java \
+	daikon/inv/binary/twoScalar/IntNonEqual.java \
+	daikon/inv/binary/twoScalar/FloatNonEqual.java \
+	daikon/inv/binary/twoScalar/IntLessThan.java \
+	daikon/inv/binary/twoScalar/FloatLessThan.java \
+	daikon/inv/binary/twoScalar/IntLessEqual.java \
+	daikon/inv/binary/twoScalar/FloatLessEqual.java \
+	daikon/inv/binary/twoScalar/IntGreaterThan.java \
+	daikon/inv/binary/twoScalar/FloatGreaterThan.java \
+	daikon/inv/binary/twoScalar/IntGreaterEqual.java \
+	daikon/inv/binary/twoScalar/FloatGreaterEqual.java \
+	daikon/inv/binary/twoScalar/NumericInt.java \
+	daikon/inv/binary/twoScalar/NumericFloat.java \
+	daikon/inv/binary/twoString/StdString.java \
+	daikon/inv/binary/twoScalar/LinearBinaryCore.java \
+	daikon/inv/binary/twoScalar/LinearBinaryCoreFloat.java \
+	daikon/inv/binary/twoScalar/LinearBinary.java \
+	daikon/inv/binary/twoScalar/LinearBinaryFloat.java \
+	daikon/inv/binary/twoScalar/TwoScalar.java \
+	daikon/inv/binary/twoScalar/TwoFloat.java \
+	daikon/inv/binary/twoString/TwoString.java \
+	daikon/inv/binary/twoString/StringEqual.java \
+	daikon/inv/binary/twoString/StringNonEqual.java \
+	daikon/inv/binary/twoString/StringLessThan.java \
+	daikon/inv/binary/twoString/StringLessEqual.java \
+	daikon/inv/binary/twoString/StringGreaterThan.java \
+	daikon/inv/binary/twoString/StringGreaterEqual.java \
+	daikon/inv/binary/twoSequence/SeqSeqIntEqual.java \
+	daikon/inv/binary/twoSequence/SeqSeqIntLessThan.java \
+	daikon/inv/binary/twoSequence/SeqSeqIntGreaterThan.java \
+	daikon/inv/binary/twoSequence/SeqSeqIntLessEqual.java \
+	daikon/inv/binary/twoSequence/SeqSeqIntGreaterEqual.java \
+	daikon/inv/binary/twoSequence/SeqSeqFloatEqual.java \
+	daikon/inv/binary/twoSequence/SeqSeqFloatLessThan.java \
+	daikon/inv/binary/twoSequence/SeqSeqFloatGreaterThan.java \
+	daikon/inv/binary/twoSequence/SeqSeqFloatLessEqual.java \
+	daikon/inv/binary/twoSequence/SeqSeqFloatGreaterEqual.java \
+	daikon/inv/binary/twoSequence/SeqSeqStringEqual.java \
+	daikon/inv/binary/twoSequence/SeqSeqStringLessThan.java \
+	daikon/inv/binary/twoSequence/SeqSeqStringGreaterThan.java \
+	daikon/inv/binary/twoSequence/SeqSeqStringLessEqual.java \
+	daikon/inv/binary/twoSequence/SeqSeqStringGreaterEqual.java \
+	daikon/inv/binary/twoSequence/Reverse.java \
+	daikon/inv/binary/twoSequence/ReverseFloat.java \
+	daikon/inv/binary/twoSequence/SubSequence.java \
+	daikon/inv/binary/twoSequence/SubSequenceFloat.java \
+	daikon/inv/binary/twoSequence/SuperSequence.java \
+	daikon/inv/binary/twoSequence/SuperSequenceFloat.java \
+	daikon/inv/binary/twoSequence/SubSet.java \
+	daikon/inv/binary/twoSequence/SubSetFloat.java \
+	daikon/inv/binary/twoSequence/SuperSet.java \
+	daikon/inv/binary/twoSequence/SuperSetFloat.java \
+	daikon/inv/binary/twoSequence/PairwiseIntEqual.java \
+	daikon/inv/binary/twoSequence/PairwiseIntLessThan.java \
+	daikon/inv/binary/twoSequence/PairwiseIntGreaterThan.java \
+	daikon/inv/binary/twoSequence/PairwiseIntLessEqual.java \
+	daikon/inv/binary/twoSequence/PairwiseIntGreaterEqual.java \
+	daikon/inv/binary/twoSequence/PairwiseFloatEqual.java \
+	daikon/inv/binary/twoSequence/PairwiseFloatLessThan.java \
+	daikon/inv/binary/twoSequence/PairwiseFloatGreaterThan.java \
+	daikon/inv/binary/twoSequence/PairwiseFloatLessEqual.java \
+	daikon/inv/binary/twoSequence/PairwiseFloatGreaterEqual.java \
+	daikon/inv/binary/twoSequence/PairwiseLinearBinary.java \
+	daikon/inv/binary/twoSequence/PairwiseLinearBinaryFloat.java \
+	daikon/inv/binary/twoSequence/PairwiseStringEqual.java \
+	daikon/inv/binary/twoSequence/PairwiseStringLessThan.java \
+	daikon/inv/binary/twoSequence/PairwiseStringGreaterThan.java \
+	daikon/inv/binary/twoSequence/PairwiseStringLessEqual.java \
+	daikon/inv/binary/twoSequence/PairwiseStringGreaterEqual.java \
+	daikon/inv/binary/twoSequence/PairwiseLinearBinary.java \
+	daikon/inv/binary/twoSequence/PairwiseLinearBinaryFloat.java \
+	daikon/inv/binary/twoSequence/PairwiseNumericInt.java \
+	daikon/inv/binary/twoSequence/PairwiseNumericFloat.java \
+	daikon/inv/binary/twoSequence/PairwiseString.java \
+	daikon/inv/binary/twoSequence/TwoSequence.java \
+	daikon/inv/binary/twoSequence/TwoSequenceFloat.java \
+	daikon/inv/binary/twoSequence/TwoSequenceString.java \
+	daikon/inv/binary/twoSequence/TwoSequenceString.java \
+	daikon/derive/ternary/SequenceScalarArbitrarySubsequence.java \
+	daikon/derive/ternary/SequenceFloatArbitrarySubsequence.java \
+	daikon/derive/ternary/SequenceStringArbitrarySubsequence.java \
+	daikon/derive/ternary/SequenceScalarArbitrarySubsequenceFactory.java \
+	daikon/derive/ternary/SequenceFloatArbitrarySubsequenceFactory.java \
+	daikon/derive/ternary/SequenceStringArbitrarySubsequenceFactory.java \
+	daikon/derive/binary/SequenceScalarSubscript.java \
+	daikon/derive/binary/SequenceFloatSubscript.java \
+	daikon/derive/binary/SequenceStringSubscript.java \
+	daikon/derive/binary/SequenceScalarSubsequence.java \
+	daikon/derive/binary/SequenceFloatSubsequence.java \
+	daikon/derive/binary/SequenceStringSubsequence.java \
+	daikon/derive/binary/SequenceScalarSubscriptFactory.java \
+	daikon/derive/binary/SequenceFloatSubscriptFactory.java \
+	daikon/derive/binary/SequenceStringSubscriptFactory.java \
+	daikon/derive/binary/SequenceScalarIntersection.java \
+	daikon/derive/binary/SequenceFloatIntersection.java \
+	daikon/derive/binary/SequenceStringIntersection.java \
+	daikon/derive/binary/SequenceScalarIntersectionFactory.java \
+	daikon/derive/binary/SequenceFloatIntersectionFactory.java \
+	daikon/derive/binary/SequenceStringIntersectionFactory.java \
+	daikon/derive/binary/SequenceScalarUnion.java \
+	daikon/derive/binary/SequenceFloatUnion.java \
+	daikon/derive/binary/SequenceStringUnion.java \
+	daikon/derive/binary/SequenceScalarUnionFactory.java \
+	daikon/derive/binary/SequenceFloatUnionFactory.java \
+	daikon/derive/binary/SequenceStringUnionFactory.java \
+	daikon/derive/binary/SequencesPredicate.java \
+	daikon/derive/binary/SequencesPredicateFloat.java \
+	daikon/derive/binary/SequencesPredicateFactory.java \
+	daikon/derive/binary/SequencesPredicateFactoryFloat.java \
+	daikon/derive/binary/SequencesJoin.java \
+	daikon/derive/binary/SequencesJoinFloat.java \
+	daikon/derive/binary/SequencesJoinFactory.java \
+	daikon/derive/binary/SequencesJoinFactoryFloat.java \
+	daikon/derive/unary/SequenceInitial.java \
+	daikon/derive/unary/SequenceInitialFloat.java \
+	daikon/derive/unary/SequenceInitialFactory.java \
+	daikon/derive/unary/SequenceInitialFactoryFloat.java \
+
+# These files were auto-generated previously; they still might exist in
+# some user's directory.
+OLD_AUTO_GENERATED_FILES = \
+	daikon/inv/binary/twoScalar/FloatComparisonCore.java \
+	daikon/inv/binary/twoScalar/FunctionUnary.java \
+	daikon/inv/binary/twoScalar/FunctionUnaryCore.java \
+	daikon/inv/binary/twoScalar/FunctionUnaryCoreFloat.java \
+	daikon/inv/binary/twoScalar/FunctionUnaryFloat.java \
+	daikon/inv/binary/twoScalar/IntComparisonCore.java \
+	daikon/inv/binary/twoSequence/PairwiseFunctionUnary.java \
+	daikon/inv/binary/twoSequence/PairwiseFunctionUnaryFloat.java \
+	daikon/inv/unary/sequence/SeqIndexComparison.java \
+	daikon/inv/unary/sequence/SeqIndexComparisonFloat.java \
+	daikon/inv/unary/sequence/SeqIndexNonEqual.java \
+	daikon/inv/unary/sequence/SeqIndexNonEqualFloat.java \
+	daikon/inv/binary/twoScalar/NonEqualCore.java \
+	daikon/inv/binary/twoScalar/NonEqualCoreFloat.java \
+	daikon/inv/binary/sequenceScalar/SequenceScalarFactory.java \
+	daikon/inv/binary/sequenceScalar/SequenceFloatFactory.java \
+	daikon/inv/binary/twoScalar/TwoScalarFactory.java \
+	daikon/inv/binary/twoScalar/TwoFloatFactory.java \
+	daikon/inv/binary/twoSequence/TwoSequenceFactory.java \
+	daikon/inv/binary/twoSequence/TwoSequenceFactoryFloat.java \
+	daikon/inv/unary/sequence/SingleScalarSequenceFactory.java \
+	daikon/inv/unary/sequence/SingleFloatSequenceFactory.java \
+	daikon/inv/ternary/threeScalar/ThreeScalarFactory.java \
+	daikon/inv/binary/sequenceString/Member.java \
+	daikon/inv/ternary/threeScalar/FunctionBinaryCore.java \
+	daikon/inv/Functions.java \
+	daikon/inv/FunctionsFloat.java \
+	daikon/inv/ternary/threeScalar/FunctionBinaryCoreFloat.java \
+	utilMDE/MathMDE.java \
+	lib/utilMDE.jar
+
+
+OLD_AUTO_GENERATED_CLASSES = $(subst .java,.class,${OLD_AUTO_GENERATED_FILES})
+
+
+# These files cannot be generated until everything else has been compiled.
+# (But, a problem is that it can get out of date and cause the compilation
+# to fail during pass 1.)
+AUTO_GENERATED_FILES_2 = \
+	daikon/test/split/SplitterFactoryTest.java
+
+AUTO_GENERATED_CLASSES_2 = $(subst .java,.class,${AUTO_GENERATED_FILES_2})
+
+# Used as a prerequisite, not for the file names, so OK to include update-libs.
+ALL_GENERATED_FILES = update-libs ${AUTO_GENERATED_FILES} ${AUTO_GENERATED_FILES_2}
+
+update-libs:
+	make -C .. update-libs
+.PHONY: update-libs
+
+
+###########################################################################
+### Variables passed down to subshells
+###
+
+export DAIKON_CLASSPATH
+export CHECKERJAR
+export DAIKONDIR
+
+
+###########################################################################
+### Compilation targets
+###
+
+# all_directly is not marked as phony
+.PHONY: default compile all all_stop_on_error all_via_daikon
+default: all
+compile: all
+
+# "-S" means do not continue after errors.
+all: all_stop_on_error
+
+# Don't bother to run the unit tests if the compilation failed.
+all_stop_on_error:
+# if ../.git does not exist, then directory was created from
+# a daikon archive file and we cannot do git-hooks
+ifneq ($(shell ls ../.git 2>/dev/null),)
+	$(MAKE) -C .. git-hooks
+endif
+	$(MAKE) --stop all_directly junit
+
+## In general, don't use this; it misses some files
+all_via_daikon: chicory daikon/Daikon.class daikon/Runtime.class daikon/diff/Diff.class
+	$(MAKE) all_pass2
+
+xlint: chicory ${ALL_GENERATED_FILES}
+	@${JAVAC_COMMAND} -Xlint -Xmaxwarns 1000 ${DAIKON_JAVA_FILES} 2>&1
+
+## ${JAVA_FILES} is so long I can't see the result on the same screen as the command.
+# Do not mark this target as .PHONY.  We want it to
+# always recompile, whether recompilation is necessary or not.  (Why?)
+all_directly: ../utils/plume-scripts ${AUTO_GENERATED_FILES} java_files.txt
+# # If SplitterFactoryTestUpdater.java is newer than SplitterFactoryTest.java, then delete the latter.
+# 	if [ daikon/test/split/SplitterFactoryTestUpdater.java -nt daikon/test/split/SplitterFactoryTest.java ] ; then rm -f daikon/test/split/SplitterFactoryTest.java; fi
+	rm -f `find daikon -name "*.class" -print`
+	echo "CLASSPATH = ${CLASSPATH}"
+	echo "DAIKON_CLASSPATH = ${DAIKON_CLASSPATH}"
+	${JAVAC_COMMAND} @java_files.txt
+	rm -f java_files.txt
+# on some systems chmod with symbolic arguments pays attention to umask.  so use 444 instead of -w
+	@chmod 444 ${AUTO_GENERATED_FILES}
+# This creates ${AUTO_GENERATED_FILES_2}, so that shouldn't be a prerequisite.
+	$(MAKE) all_pass2
+# These can't be prerequisites because they depend on .class files from Daikon itself.
+	$(MAKE) chicory
+	$(MAKE) dyncomp
+
+java_files.txt: ${JAVA_FILES}
+	@echo ${JAVA_FILES} > java_files.txt
+
+.PHONY : daikon compile_daikon
+daikon: compile_daikon junit
+compile_daikon : ../utils/plume-scripts $(AUTO_GENERATED_FILES)
+	@echo $(JAVAC_COMMAND) 'daikon/*.java ...'
+	@$(JAVAC_COMMAND) $(DAIKON_JAVA_FILES)
+	@chmod 444 ${AUTO_GENERATED_FILES}
+	# $(MAKE) all_pass2
+
+#
+# Chicory java front end for Daikon
+#
+CHICORY_JAVA_FILES := daikon/Chicory.java daikon/chicory/*.java
+
+# This actually requires Daikon to already be compiled.
+# It would be good to make that an explicit prerequisite.
+.PHONY: chicory
+chicory : ChicoryPremain.jar
+ChicoryPremain.jar : $(wildcard $(CHICORY_JAVA_FILES)) \
+					 daikon/chicory/manifest.txt
+	$(JAVAC_COMMAND) $(CHICORY_JAVA_FILES)
+	$(JAR) cfm ChicoryPremain.jar daikon/chicory/manifest.txt \
+	  daikon/chicory/ChicoryPremain.class
+	$(MAKE) chicory-test
+
+.PHONY: chicory-test
+chicory-test : daikon/chicory/inv_out.diff
+daikon/chicory/inv_out.diff : ChicoryPremain.jar
+	cd daikon/chicory && rm -f ChicoryTest.log ChicoryTest.dtrace.gz ChicoryTest.inv.gz ChicoryTest.inv.out
+	cd daikon/chicory && $(JAVA_COMMAND) daikon.Chicory --verbose --debug daikon.chicory.ChicoryTest > ChicoryTest.log
+	cd daikon/chicory && $(JAVA_COMMAND) daikon.Daikon --no_text_output --no_show_progress ChicoryTest.dtrace.gz
+	cd daikon/chicory && $(JAVA_COMMAND) daikon.PrintInvariants ChicoryTest.inv.gz > ChicoryTest.inv.out
+	-diff -uw daikon/chicory/ChicoryTest.inv.out.goal daikon/chicory/ChicoryTest.inv.out \
+	  > daikon/chicory/ChicoryTest.inv.out.diff
+	@if test ! -s daikon/chicory/ChicoryTest.inv.out.diff ; then echo No Errors; \
+	else echo Errors: more daikon/chicory/ChicoryTest.inv.out.diff for details; fi
+
+#
+# Dynamic Comparability (DynComp/Java; also Chicory)
+#
+INSTRUMENTATION_JAVA_FILES := daikon/DynComp.java daikon/dcomp/*.java daikon/chicory/*.java
+DCOMP_ARGS := --ppt-select-pattern=daikon.dcomp.DcompTest
+DCOMP_DIR := daikon/dcomp
+JAVA_DCOMP = java -ea -esa -Xbootclasspath:$(DCOMP_RT):$(DAIKON_CLASSPATH)
+
+# Build DynComp/Java, check the DF summary info and run a sanity test
+.PHONY: dyncomp dcomp
+dyncomp dcomp : plume-import-check dcomp_premain.jar
+dcomp_premain.jar : $(wildcard $(INSTRUMENTATION_JAVA_FILES)) daikon/dcomp/manifest.txt
+	$(JAVAC_COMMAND) $(INSTRUMENTATION_JAVA_FILES)
+	$(JAR) cfm dcomp_premain.jar daikon/dcomp/manifest.txt \
+	  daikon/dcomp/Premain.class
+	$(MAKE) dcomp-test
+
+# Runs a simple sanity test on DynComp/Java without an instrumented JDK
+# Also creates file ./DcompTest.decls-DynComp
+.PHONY: dcomp-test
+dcomp-test : daikon/dcomp/std_dcomp_out.diff
+daikon/dcomp/std_dcomp_out.diff : dcomp_premain.jar
+	/bin/rm -rf /tmp/$(USER)/bin/* /tmp/$(USER)/orig/*
+	$(JAVA_COMMAND) \
+	  daikon.DynComp $(DCOMP_ARGS) \
+	  --comparability-file=daikon/dcomp/std_dcomp_out.txt --rt-file=NONE \
+	  daikon/dcomp/DcompTest
+	-diff -uw daikon/dcomp/std_dcomp_out.goal daikon/dcomp/std_dcomp_out.txt \
+	  > daikon/dcomp/std_dcomp_out.diff
+	@if test ! -s daikon/dcomp/std_dcomp_out.diff ; then echo No Errors; \
+	else echo Errors: more daikon/dcomp/std_dcomp_out.diff for details; fi
+	@rm -f DcompTest.decls-DynComp
+
+dyncomp-test-jdk dcomp-test-jdk : dcomp_premain.jar
+	/bin/rm -rf /tmp/$(USER)/bin/* /tmp/$(USER)/orig/*
+	$(JAVA_DCOMP) \
+	   daikon.DynComp $(DCOMP_ARGS) \
+	   --comparability-file=daikon/dcomp/jdk_dcomp_out.txt daikon/dcomp/DcompTest
+	-diff -u daikon/dcomp/jdk_dcomp_out.goal daikon/dcomp/jdk_dcomp_out.txt \
+	  > daikon/dcomp/jdk_dcomp_out.diff
+	@cat daikon/dcomp/jdk_dcomp_out.diff
+# TODO: This produces output in nondeterministic order
+	@find daikon/dcomp -name '*.diff' -printf "%8s    %p\n"
+
+dyncomp-update-goals dcomp-update-goals:
+	cp daikon/dcomp/std_dcomp_out.txt daikon/dcomp/std_dcomp_out.goal
+	cp daikon/dcomp/jdk_dcomp_out.txt daikon/dcomp/jdk_dcomp_out.goal
+#
+# Rules to build the instrumented JDK for DynComp/Java
+#
+DCOMP_RT	:= dcomp-rt
+#DCOMP_JDK	:= /tmp/$(USER)/dcomp-j2sdk-1.5
+J2SDK15		:= /usr/lib/j2sdk1.5-sun
+dyncomp-jdk dcomp-jdk   : dcomp_rt.jar
+dcomp_rt.jar : dcomp_premain.jar
+	/bin/rm -rf $(DCOMP_RT)
+	$(INSTALL) -d $(DCOMP_RT)
+	$(JAVA_COMMAND) -Xmx1500m daikon.dcomp.BuildJDK $(DCOMP_RT)
+# "then" clause is Java 8, "else" clause is Java 9+.
+# For Java 9+, there appears to be a bug in the Java reflection invoke code that it
+# does not check that the arg list matches.  Hence, it tries to invoke
+# our instrumented version from non instrumented code.  This causes a
+# failure during java initialization of boot layer.  Thus we must remove
+# the problem classes from dcomp_rt.jar.
+	@if test -f $(DCOMP_RT)/META-INF/MANIFEST.MF; then \
+	  $(JAR) cmf $(DCOMP_RT)/META-INF/MANIFEST.MF dcomp_rt.jar -C $(DCOMP_RT) .; \
+	else \
+	  rm $(DCOMP_RT)/java/lang/invoke/VarHandleInts?Field*.class; \
+	  $(JAR) cf dcomp_rt.jar -C $(DCOMP_RT) .; \
+	fi
+
+dyncomp-jdk-no-primitives dcomp-jdk-no-primitives  : dcomp_premain.jar
+	/bin/rm -rf $(DCOMP_RT)
+	$(INSTALL) -d $(DCOMP_RT)
+	$(JAVA_COMMAND) -Xmx2600m daikon.dcomp.BuildJDK --no-primitives $(DCOMP_RT)
+	@if test -f $(DCOMP_RT)/META-INF/MANIFEST.MF; then \
+	  $(JAR) cmf $(DCOMP_RT)/META-INF/MANIFEST.MF dcomp_rt.jar -C $(DCOMP_RT) .; \
+	else \
+	  rm $(DCOMP_RT)/java/lang/invoke/VarHandleInts?Field*.class; \
+	  $(JAR) cf dcomp_rt.jar -C $(DCOMP_RT) .; \
+	fi
+
+# Install the local version of the dyncomp specific rt.jar
+install-dyncomp-jdk install-dcomp-jdk : dcomp_rt.jar
+	cp dcomp_rt.jar $(pag)/software/arch/common/pkg/DynComp/
+
+# Only rebuild the jar file, don't recreate the contents of $(DCOMP_RT).
+# Useful if editing only one file in the jar.
+dyncomp-jdk-only dcomp-jdk-only :
+	@if test -f $(DCOMP_RT)/META-INF/MANIFEST.MF; then \
+	  $(JAR) cmf $(DCOMP_RT)/META-INF/MANIFEST.MF dcomp_rt.jar -C $(DCOMP_RT) .; \
+	else \
+	  rm $(DCOMP_RT)/java/lang/invoke/VarHandleInts?Field*.class; \
+	  $(JAR) cf dcomp_rt.jar -C $(DCOMP_RT) .; \
+	fi
+
+## These two rules create the directories if absent but don't update them.
+../utils/plume-scripts:
+	${MAKE} -C .. update-plume-scripts
+
+../utils/html-tools:
+	${MAKE} -C .. update-html-tools
+
+.PHONY: update-plume-scripts
+update-plume-scripts:
+	${MAKE} -C .. update-plume-scripts
+
+# Checks that daikon.plumelib, rather than plume, is imported by source files
+# that do instrumentation.  Should also check that daikon.plumelib is never
+# imported by non-instrumentation files.
+.PHONY: plume-import-check
+plume-import-check :
+	@echo -n "Checking that imports of plume and daikon.plumelib are correct..."
+	@if [ -n "`grep '^import org.plumelib' $(INSTRUMENTATION_JAVA_FILES)`" ]; then \
+	echo ""; \
+	echo "*** ERROR: Do not import org.plumelib.* from DynComp code. It would be"; \
+	echo " instrumented when DynComp or Chicory is run. Please use the"; \
+	echo " (identical) daikon.plumelib package, which will not be instrumented."; \
+	echo "The following files import from plume:"; \
+	grep -n '^import org.plumelib.*' $(INSTRUMENTATION_JAVA_FILES); \
+	false; \
+	else \
+	echo "done"; \
+	fi
+
+## Use this when you don't want $inv/tests makefiles to restart
+JAVA_FILES_EXCEPT_DAIKON = $(subst ./daikon/Daikon.java,,${JAVA_FILES})
+all_except_daikon: ../utils/plume-scripts ${AUTO_GENERATED_FILES}
+	@echo ${JAVAC_COMMAND} '*.java ... (except Daikon.java)'
+	@${JAVAC_COMMAND} ${JAVA_FILES_EXCEPT_DAIKON}
+	@chmod a-w ${AUTO_GENERATED_FILES}
+	$(MAKE) all_pass2
+
+.PHONY: all_pass2
+all_pass2: ${AUTO_GENERATED_CLASSES_2}
+
+all_except: all_except_daikon
+
+all_force:	all_directly
+
+all_via_javac:
+	$(MAKE) JAVAC='javac' all
+
+all_javac:	all_via_javac
+
+javac:	all_via_javac
+
+# These rules are undesirable, because Daikon.class (or Diff.class) might
+# be up to date even if other files aren't.
+daikon/Daikon.class: daikon/Daikon.java	../utils/plume-scripts ${AUTO_GENERATED_FILES}
+	${JAVAC_COMMAND} daikon/Daikon.java
+
+daikon/Diff.class: Diff.java ../utils/plume-scripts ${AUTO_GENERATED_FILES}
+	${JAVAC_COMMAND} daikon/Diff.java
+
+daikon/Runtime.class: daikon/Runtime.java
+	${JAVAC_COMMAND} daikon/Runtime.java
+
+
+###########################################################################
+### Cleaning (removing generated files
+###
+
+# It's good to run "make clean" occasionally, because it costs little to
+# regenerate .class files and it's bad to continue to use an orphaned class
+# file (whose source file was renamed).  Or, run "orphaned-class-files".
+# The (slight) downside is that the regenerated .class files might cause some
+# Make rules to unnecessarily re-run, if the code hasn't actually changed.
+clean_class_files:
+	-rm -f `find . -name "*.class" -print`
+	# java/daikon might be a symbolic link; the alternative is to pass
+	# "-follow" to the above find command, but I don't necessarily
+	# want to remove everything reachable through symbolic links.
+	-rm -f `find daikon -follow -name "*.class" -print`
+	-rm -f ${OLD_AUTO_GENERATED_FILES}
+
+clean:
+	${MAKE} clean_class_files
+	-rm -f ChicoryPremain.jar
+	-rm -f daikon/chicory/ChicoryTest.log
+
+clean-generated-files:
+	-rm -f ${AUTO_GENERATED_FILES} ${AUTO_GENERATED_FILES_2}
+
+# Could/should remove plume-scripts here, too.
+veryclean: very_clean
+very_clean: very-clean
+very-clean: clean clean-generated-files
+	-rm -f TAGS
+	-rm -rf dcomp_premain.jar dcomp_rt.jar $(DCOMP_RT)
+	-rm -rf api
+	-rm -rf daikon/dcomp/std_dcomp_out.diff daikon/dcomp/std_dcomp_out.txt
+
+
+run:	all
+	${JAVA_COMMAND} daikon.Daikon
+
+ifneq (,$(shell which etags))
+## The etags program exists
+ifneq (,$(findstring Exuberant, $(shell etags --version 2>&1)))
+ETAGS := etags --language-force=java
+else
+ETAGS := etags --language=java
+endif
+endif
+
+TAGS:	tags
+.PHONY: etags tags
+etags:	tags
+tags: ../utils/plume-scripts
+ifndef ETAGS
+	$(error etags is not available, please install it)
+endif
+	@echo etags '*.java ...'
+	@$(ETAGS) ${TAG_FILES}
+
+# A TAGS file that does not contain generated files
+# When doing certain search/replace tasks, it's better to omit generated files
+tags-nogen: tags-without-generated-files
+tags-sans-generated: tags-without-generated-files
+tags-without-generated-files: clean-generated-files
+	$(MAKE) tags
+	$(MAKE) compile
+
+# A TAGS file that does not contain jtb-generated files.
+tags-nojtb: ../utils/plume-scripts
+ifndef ETAGS
+	$(error etags is not available, please install it)
+endif
+	@echo etags '*.java ...'
+	@$(ETAGS) ${TAG_FILES_NO_JTB}
+
+
+###########################################################################
+### Code quality (static checks of the code)
+###
+
+JAVA_VERSION_STRING := $(shell javac -version 2>&1 | head -1 | cut "-d " -f2)
+ifneq (,$(findstring start1.8,start$(JAVA_VERSION_STRING)))
+  JAVA8 := 1
+else
+  JAVA8 := 0
+endif
+
+# See version numbers at https://github.com/google/error-prone/releases
+ERRORPRONE_PROCESSOR_PATH := ${DAIKONDIR}/java/lib/error-prone/error_prone_core-2.4.0-with-dependencies.jar:${DAIKONDIR}/java/lib/error-prone/dataflow-shaded-3.1.2.jar:${DAIKONDIR}/java/lib/error-prone/javacutil-3.1.1.jar:${DAIKONDIR}/java/lib/error-prone/jFormatString-3.0.0.jar:${DAIKONDIR}/java/lib/error-prone/caffeine-2.8.4.jar:${DAIKONDIR}/java/lib/error-prone/diffutils-1.3.0.jar:${DAIKONDIR}/java/lib/error-prone/threeten-extra-1.5.0.jar
+
+error-prone: errorprone
+errorprone: compile errorprone-nocompile
+# Some of the -Xep are temporary
+errorprone-nocompile:
+ifeq ($(JAVA8), 1)
+	echo "Error Prone is not run under Java 8"
+else
+## MutablePublicArray is off because Error Prone 2.4.0 crashes: https://github.com/google/error-prone/issues/1645
+	javac -cp ${DAIKON_CLASSPATH} \
+	  -XDcompilePolicy=simple -processorpath ${ERRORPRONE_PROCESSOR_PATH} \
+	  '-Xplugin:ErrorProne -Xep:ReferenceEquality:OFF -Xep:StringSplitter:OFF -Xep:AnnotateFormatMethod:OFF -Xep:MutablePublicArray:OFF' \
+	  -Xmaxwarns 100000 -Werror \
+	  ${JAVA_FILES_FOR_STYLE}
+endif
+
+# Create an `error-prone.patch` file.
+errorprone-replacements:
+	javac -cp ${DAIKON_CLASSPATH} \
+	  -XDcompilePolicy=simple -processorpath ${ERRORPRONE_PROCESSOR_PATH} \
+	  '-Xplugin:ErrorProne -XepPatchChecks:UnnecessaryParentheses,ArrayToString -XepPatchLocation:${DAIKONDIR}/java' \
+	  -Xmaxwarns 100000 ${JAVA_FILES_FOR_STYLE}
+
+findbugs: .findbugs-output
+.PHONY: findbugs
+
+# Takes about 20 minutes on manioc as of June 2005.
+.findbugs-output: ../daikon.jar
+	$(MAKE) findbugs-nocompile
+
+# WARNING: This does not use the class files, but the .jar file.
+# So make sure it's up to date before using this.
+# WARNING: I don't think this will work unless you're logged on as Michael Ernst.
+findbugs-nocompile:
+	rm -f .findbugs-output
+	~mernst/bin/share/findbugs -emacs -textui -property "findbugs.maskedfields.locals=true" -property "findbugs.de.comment=true" -exclude .findbugs-exclude.xml -maxHeap 750 ../daikon.jar | tee .findbugs-output
+
+# This target is aimed at M-x compile in Emacs.  The output is misleading
+# if the .findbugs-output file might be old, or the daikon.jar file is old.
+findbugs-cat:
+	cat .findbugs-output
+
+.PHONY: jar
+jar: ../daikon.jar
+../daikon.jar: ../utils/plume-scripts ${AUTO_GENERATED_FILES} compile
+	cd .. && $(MAKE) daikon.jar
+
+checkstyle: checkstyle-cs checkstyle-sun
+checkstyle-cs: .checkstyle-cschecks-output
+checkstyle-sun: .checkstyle-sunchecks-output
+.PHONY: checkstyle checkstyle-cs checkstyle-sun
+
+checkstyle:
+# This invocation works on Ubuntu.
+	checkstyle -c /usr/share/checkstyle/sun_checks.xml ${JAVA_FILES_FOR_STYLE}
+
+jlint:
+	jlint . | grep -v "Value of referenced variable '.*' may be NULL" | grep -v "Compare strings as object references" | perl -p -e 's:^daikon/::'
+
+# "(cd $inv; maudit daikon)" does not work; I don't understand why.
+# Unfortunately, this is way too much output; I need to filter it.
+# Maybe write my own script to do that...
+audit:
+	cd $(HOME)/java && maudit daikon | perl -p -e 's/^daikon\///'
+
+
+.PHONY: reformat check-format
+
+# Requires Java 8
+reformat:
+ifneq (,$(findstring 1.8.,$(shell java -version 2>&1)))
+	${MAKE} -C .. update-run-google-java-format
+	@../utils/run-google-java-format/run-google-java-format.py ${JAVA_FILES_FOR_FORMAT}
+endif
+
+# Requires Java 8
+check-format:
+ifneq (,$(findstring 1.8.,$(shell java -version 2>&1)))
+	${MAKE} -C .. update-run-google-java-format
+	@../utils/run-google-java-format/check-google-java-format.py ${JAVA_FILES_FOR_FORMAT} || (echo "Try running:  make reformat" && /bin/false)
+endif
+
+
+###########################################################################
+### Pluggable type checkers
+###
+
+# (Don't run these until after you have compiled Daikon at least once.)
+
+# Note about CHECKER_ARGS: if this contains any -Alint option, it will
+# override (not augment) any other use of -Alint in this Makefile.
+# "-proc:only" prevents generation of .class files (so generated classfiles are
+# version 8 rather than version 9).
+# JAVACHECK_EXTRA_ARGS is set only by the user (and is currently used by Travis).
+CHECKER_ARGS_ALL_JDK_VERSIONS ?= -Xmaxerrs 10000 -Xmaxwarns 10000 -ArequirePrefixInWarningSuppressions -AwarnUnneededSuppressions -XDignore.symbol.file -Xlint:deprecation -proc:only -processorpath ${CHECKERFRAMEWORK_JAR} ${JAVACHECK_EXTRA_ARGS}
+ifneq (,$(findstring 1.8.,$(shell java -version 2>&1)))
+  CHECKER_ARGS ?= ${CHECKER_ARGS_ALL_JDK_VERSIONS} -J-Xbootclasspath/p:${CHECKERFRAMEWORK_JAVAC} -Xbootclasspath/p:${CHECKERFRAMEWORK_JAR_DIR}/jdk8.jar
+else
+  CHECKER_ARGS ?= ${CHECKER_ARGS_ALL_JDK_VERSIONS} -J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED
+endif
+
+## All of the following targets need to depend on "compile".
+
+# Just check that the Index Checker doesn't crash -- -AsuppressWarnings="index"
+# command-line argument suppresses all type-checking errors.
+JAVAC_INDEX_ARGS = -processor org.checkerframework.checker.index.IndexChecker -implicit:class -Xlint:-processing -AskipDefs='${INDEX_SKIPDEFS}' -AassumeAssertionsAreEnabled -AsuppressWarnings="index"
+# JAVAC_INTERNING_ARGS = -processor org.checkerframework.checker.interning.InterningChecker -implicit:class -Xlint:-processing
+JAVAC_INTERNING_ARGS = -processor org.checkerframework.checker.interning.InterningChecker -Alint=-dotequals -implicit:class -Xlint:-processing -AskipDefs='${INTERNING_SKIPDEFS}'
+JAVAC_SIGNATURE_ARGS = -processor org.checkerframework.checker.signature.SignatureChecker -implicit:class -Xlint:-processing -AskipDefs='${ALLSYSTEMS_SKIPDEFS}'
+JAVAC_NULLNESS_ARGS = -processor org.checkerframework.checker.nullness.NullnessChecker -implicit:class -Xlint:-processing -AskipDefs='${ALLSYSTEMS_SKIPDEFS}'
+JAVAC_PROTOTYPE_ARGS = -processor org.checkerframework.common.subtyping.SubtypingChecker -Aquals=typequals.Prototype,typequals.NonPrototype -implicit:class -Xlint:-processing -J-Dcheckers.skipUses='^java\.'
+JAVAC_VINDEX_ARGS = -processor org.checkerframework.common.subtyping.SubtypingChecker -Aquals=typequals.VIndexTop,typequals.ValueIndex,typequals.VarIndex,typequals.VIndexUnqualified,typequals.VIndexBottom -implicit:class -Xlint:-processing -J-Dcheckers.skipUses='^java\.'
+JAVAC_REGEX_ARGS = -processor org.checkerframework.checker.regex.RegexChecker -implicit:class -Xlint:-processing -AskipDefs='${ALLSYSTEMS_SKIPDEFS}'
+JAVAC_REGEX_QUAL_ARGS = -processor org.checkerframework.checker.experimental.regex_qual.RegexCheckerAdapter -implicit:class -Xlint:-processing -AskipDefs='${ALLSYSTEMS_SKIPDEFS}'
+JAVAC_FORMATTER_ARGS = -processor org.checkerframework.checker.formatter.FormatterChecker -implicit:class -Xlint:-processing -AskipDefs='${ALLSYSTEMS_SKIPDEFS}'
+# -AsuppressWarnings=lock:method.guarantee.violated,lock:override.sideeffect.invalid is temporary.
+# Once the Purity Checker and -AsuggestPureMethods are fixed, they can be run on plume-lib
+# and Daikon and this can be removed. The method.guarantee.violated warning is issued by
+# the Lock Checker when a method calls another method with a weaker side effect guarantee.
+# The override.sideeffect.invalid warning is issued by the Lock Checker when the side effect
+# annotation on the overridder method is weaker than that on the overridden method.
+JAVAC_LOCK_ARGS = -processor org.checkerframework.checker.lock.LockChecker -AsuppressWarnings=lock:method.guarantee.violated,lock:override.sideeffect.invalid -implicit:class -Xlint:-processing -AskipDefs='${ALLSYSTEMS_SKIPDEFS}'
+JAVAC_JAVARI_ARGS = -processor org.checkerframework.checker.javari.JavariChecker -implicit:class -Xlint:-processing -AskipDefs='${ALLSYSTEMS_SKIPDEFS}'
+JAVAC_IGJ_ARGS = -processor org.checkerframework.checker.igj.IGJChecker -implicit:class -Xlint:-processing -AskipDefs='${ALLSYSTEMS_SKIPDEFS}'
+## Code in dcomp directory is not called directly; annotations would be useless.
+INDEX_SKIPDEFS = ^daikon\.dcomp\|^jtb\.
+INTERNING_SKIPDEFS = ^daikon\.dcomp\|^jtb\.
+ALLSYSTEMS_SKIPDEFS=^jtb\.
+INDEX_JAVA_FILES = ${DAIKON_JAVA_FILES}
+# Intern.java implements interning and so has very many annotations.  VarInfoName
+# is obsolescent, retained for backward compatibility only; it is of flawed design
+# and has 60 @Interned annotations and quite a few SuppressWarnings.
+INTERNING_JAVA_FILES_SKIP_COUNTS = Intern.java\|VarInfoName.java\|daikon/dcomp
+## Which files to check.
+INTERNING_JAVA_FILES = ${DAIKON_JAVA_FILES}
+INTERNING_JAVA_FILES_COUNTS = $(shell find . -type f -name '*.java' | egrep -v ${INTERNING_JAVA_FILES_SKIP_COUNTS} | xargs grep -l -i '@Interned' | ${SORT_DIRECTORY_ORDER})
+NULLNESS_JAVA_FILES = ${DAIKON_JAVA_FILES}
+
+#  $(shell find daikon -name '*.java' -a -exec grep -L "^@SuppressWarnings.*nullness" {} \; | sort)
+#   $(shell find typequals/ -name '*.java')
+
+show_nullness_java_files:
+	@echo NULLNESS_JAVA_FILES:
+	@echo ${NULLNESS_JAVA_FILES}
+	@echo DAIKON_JAVA_FILES:
+	@echo ${DAIKON_JAVA_FILES}
+
+## TODO: Reinstate these dependencies later:  check-prototype check-vindex
+# Check is in two parts because Travis won't run jobs longer than 50 minutes.
+check-part1: check-formatter check-index check-interning check-lock
+check-part2: check-nullness check-regex check-signature
+check-all: check-part1 check-part2
+typecheck: check-all
+
+check-index: ${INDEX_JAVA_FILES} compile
+	@echo ${JAVAC_COMMAND} ${JAVAC_INDEX_ARGS} ${CHECKER_ARGS} ...
+	@${JAVAC_COMMAND} ${JAVAC_INDEX_ARGS} ${CHECKER_ARGS} ${INDEX_JAVA_FILES}
+
+# Run the index checker on all Java files, not just those in the daikon package.
+# For instance, this includes jtb, which is not annotated with @Interned.
+check-index-all: ${ALL_GENERATED_FILES} compile
+	@echo ${JAVAC_COMMAND} ${JAVAC_INDEX_ARGS} ${CHECKER_ARGS} ...
+	@${JAVAC_COMMAND} ${JAVAC_INDEX_ARGS} ${CHECKER_ARGS} ${JAVA_FILES}
+
+# This target runs the Index checker on just one file.
+# Typical command:
+# INDEX_ONEFILE="daikon/derive/binary/SequenceStringIntersection.java daikon/derive/binary/SequenceStringUnion.java daikon/inv/unary/stringsequence/CommonStringSequence.java daikon/Quant.java" make check-index-onefile
+INDEX_ONEFILE ?= daikon/PptTopLevel.java
+check-index-onefile: ${ALL_GENERATED_FILES} compile
+	${JAVAC_COMMAND} ${JAVAC_INDEX_ARGS} ${CHECKER_ARGS} ${INDEX_ONEFILE}
+
+check-interning: ${INTERNING_JAVA_FILES} compile
+	@echo ${JAVAC_COMMAND} ${JAVAC_INTERNING_ARGS} ${CHECKER_ARGS} ...
+	@${JAVAC_COMMAND} ${JAVAC_INTERNING_ARGS} ${CHECKER_ARGS} ${INTERNING_JAVA_FILES}
+
+# Run the interning checker on all Java files, not just those in the daikon package.
+# For instance, this includes jtb, which is not annotated with @Interned.
+check-interning-all: ${ALL_GENERATED_FILES} compile
+	@echo ${JAVAC_COMMAND} ${JAVAC_INTERNING_ARGS} ${CHECKER_ARGS} ...
+	@${JAVAC_COMMAND} ${JAVAC_INTERNING_ARGS} ${CHECKER_ARGS} ${JAVA_FILES}
+
+# This target runs the Interning checker on just one file.
+# Typical command:
+# INTERNING_ONEFILE="daikon/derive/binary/SequenceStringIntersection.java daikon/derive/binary/SequenceStringUnion.java daikon/inv/unary/stringsequence/CommonStringSequence.java daikon/Quant.java" make check-interning-onefile
+INTERNING_ONEFILE ?= daikon/PptTopLevel.java
+check-interning-onefile: ${ALL_GENERATED_FILES} compile
+	${JAVAC_COMMAND} ${JAVAC_INTERNING_ARGS} ${CHECKER_ARGS} ${INTERNING_ONEFILE}
+
+check-signature: ${ALL_GENERATED_FILES} compile
+	@echo ${JAVAC_COMMAND} ${JAVAC_SIGNATURE_ARGS} ${CHECKER_ARGS} ...
+	@${JAVAC_COMMAND} ${JAVAC_SIGNATURE_ARGS} ${CHECKER_ARGS} ${JAVA_FILES}
+
+# This target runs the Signature checker on just one file.
+# Typical command:
+# SIGNATURE_ONEFILE="daikon/derive/binary/SequenceStringIntersection.java daikon/derive/binary/SequenceStringUnion.java daikon/inv/unary/stringsequence/CommonStringSequence.java daikon/Quant.java" make check-signature-onefile
+# SIGNATURE_ONEFILE ?= daikon/chicory/Instrument.java daikon/dcomp/DCInstrument.java
+SIGNATURE_ONEFILE ?= daikon/dcomp/TypeStack.java
+check-signature-onefile: ${ALL_GENERATED_FILES} compile
+	${JAVAC_COMMAND} ${JAVAC_SIGNATURE_ARGS} ${CHECKER_ARGS} ${SIGNATURE_ONEFILE}
+
+
+check-nullness: compile compile-typequals
+	@echo ${JAVAC_COMMAND} ${JAVAC_NULLNESS_ARGS} ${CHECKER_ARGS} ...
+	@${JAVAC_COMMAND} ${JAVAC_NULLNESS_ARGS} ${CHECKER_ARGS} ${NULLNESS_JAVA_FILES}
+
+
+# These targets run the Nullness checker on just one file.
+# Typical command:
+# NULLNESS_ONEFILE="daikon/derive/binary/SequenceStringIntersection.java daikon/derive/binary/SequenceStringUnion.java daikon/inv/unary/stringsequence/CommonStringSequence.java daikon/Quant.java" make check-nullness-onefile
+# NULLNESS_ONEFILE ?= daikon/derive/binary/SequenceStringUnion.java
+# NULLNESS_ONEFILE ?= daikon/FileIO.java
+NULLNESS_ONEFILE ?= daikon/Daikon.java
+check-nullness-onefile: compile compile-typequals
+	${MAKE} check-nullness-onefile-norecompile
+check-nullness-onefile-norecompile:
+	${JAVAC_COMMAND} ${JAVAC_NULLNESS_ARGS} ${CHECKER_ARGS} ${NULLNESS_ONEFILE}
+
+check-prototype: compile compile-typequals
+	@echo ${JAVAC_COMMAND} ${JAVAC_PROTOTYPE_ARGS} ${CHECKER_ARGS} ...
+	@${JAVAC_COMMAND} ${JAVAC_PROTOTYPE_ARGS} ${CHECKER_ARGS} ${NULLNESS_JAVA_FILES}
+
+check-vindex: compile compile-typequals
+	@echo ${JAVAC_COMMAND} ${JAVAC_VINDEX_ARGS} ${CHECKER_ARGS} ...
+	@${JAVAC_COMMAND} -Xbootclasspath/p:${DAIKONDIR}/java ${JAVAC_VINDEX_ARGS} ${CHECKER_ARGS} ${NULLNESS_JAVA_FILES}
+
+check-regex: ${ALL_GENERATED_FILES} compile
+	@echo ${JAVAC_COMMAND} ${JAVAC_REGEX_ARGS} ${CHECKER_ARGS} ...
+	@${JAVAC_COMMAND} ${JAVAC_REGEX_ARGS} ${CHECKER_ARGS} ${JAVA_FILES}
+
+check-regex-qual: ${ALL_GENERATED_FILES} compile
+	@echo ${JAVAC_COMMAND} ${JAVAC_REGEX_QUAL_ARGS} ${CHECKER_ARGS} ...
+	@${JAVAC_COMMAND} ${JAVAC_REGEX_QUAL_ARGS} ${CHECKER_ARGS} ${JAVA_FILES}
+
+check-formatter: ${ALL_GENERATED_FILES} compile
+	@echo ${JAVAC_COMMAND} ${JAVAC_FORMATTER_ARGS} ${CHECKER_ARGS} ...
+	@${JAVAC_COMMAND} ${JAVAC_FORMATTER_ARGS} ${CHECKER_ARGS} ${JAVA_FILES}
+
+check-lock: ${ALL_GENERATED_FILES} compile
+	@echo ${JAVAC_COMMAND} ${CHECKER_ARGS} ${JAVAC_LOCK_ARGS} ...
+	@${JAVAC_COMMAND} ${JAVAC_LOCK_ARGS} ${CHECKER_ARGS} ${JAVA_FILES}
+
+TYPEQUALS_JAVA_FILES = $(wildcard typequals/*.java)
+TYPEQUALS_CLASSES = $(subst .java,.class,${TYPEQUALS_JAVA_FILES})
+
+compile-typequals: ${TYPEQUALS_CLASSES}
+${TYPEQUALS_CLASSES}: ${TYPEQUALS_JAVA_FILES}
+	${JAVAC_COMMAND} ${JAVAC_ARGS} ${TYPEQUALS_JAVA_FILES}
+
+# These targets run the Interning checker on just one file.  They use ${JAVAC}
+# instead of ${JAVAC_COMMAND}, to display a shorter, easier-to-read command.
+check-interning-varinfo:
+	${JAVAC_COMMAND} ${JAVAC_INTERNING_ARGS} daikon/VarInfo.java
+check-interning-fileio:
+	${JAVAC_COMMAND} ${JAVAC_INTERNING_ARGS} daikon/FileIO.java
+
+# "tail -1" is required when wc is given multiple arguments
+interning-counts:
+	@echo -n "Annotated files: "
+	@echo ${INTERNING_JAVA_FILES_COUNTS} | sed 's/ /\n/g' | wc -l
+#	@echo ${INTERNING_JAVA_FILES_COUNTS}
+	@echo -n "Lines in annotated files: "
+	@wc -l ${INTERNING_JAVA_FILES_COUNTS} | tail -1
+	@echo -n "Lines with @Interned annotations: "
+	@grep "@Interned" ${INTERNING_JAVA_FILES_COUNTS} | wc -l
+	@echo -n "Lines with commented @Interned annotations: "
+	@grep -E "//.*@Interned" ${INTERNING_JAVA_FILES_COUNTS} | wc -l
+	@echo -n "@SuppressWarnings annotations: "
+	@grep -n '@SuppressWarnings("interning")' ${INTERNING_JAVA_FILES_COUNTS} | wc -l
+	@grep -n '@SuppressWarnings("interning")' ${INTERNING_JAVA_FILES_COUNTS}
+	@echo -n "Daikon total files: "
+	@echo ${DAIKON_JAVA_FILES} | sed 's/ /\n/g' | wc -l
+	@echo -n "Daikon total lines: "
+	@wc -l ${DAIKON_JAVA_FILES} | tail -1
+
+# This counts annotations in comments, etc.
+# "tail -1" is required when wc is given multiple arguments
+nullness-counts:
+	@echo -n "Annotated files (lines, blank, comments, NCSL, AESL): "
+	@echo ${NULLNESS_JAVA_FILES} | xargs sclc | tail -1
+	@echo -n "Total files (lines, blank, comments, NCSL, AESL): "
+	@echo ${DAIKON_JAVA_FILES} | xargs sclc | tail -1
+# 	@echo -n "Annotated files: "
+# 	@echo ${NULLNESS_JAVA_FILES} | sed 's/ /\n/g' | wc -l
+# 	@echo -n " / "
+# 	@echo ${DAIKON_JAVA_FILES} | sed 's/ /\n/g' | wc -l
+# #	@echo ${NULLNESS_JAVA_FILES}
+# 	@echo -n "Lines in annotated files: "
+# 	@echo ${NULLNESS_JAVA_FILES} | xargs wc -l | tail -1 | cut -d ' ' -f 2
+# 	@echo -n " / "
+# 	@echo ${DAIKON_JAVA_FILES} | xargs wc -l | tail -1 | cut -d ' ' -f 2
+	@echo -n "Lines with nullness annotations: "
+	@grep '@AssertNonNullIfFalse\|@AssertNonNullIfTrue\|@AssertParametersNonNull\|@KeyFor\|@LazyNonNull\|@NonNull\|@NonNullOnEntry\|@Nullable\|@PolyNull\|@Pure' ${NULLNESS_JAVA_FILES} | wc -l
+	@echo -n "Lines with @SuppressWarnings annotation or castNonNull method call: "
+	@grep '@SuppressWarnings.*nullness\|castNonNull' ${NULLNESS_JAVA_FILES} | wc -l
+	@grep -n '@SuppressWarnings.*nullness\|castNonNull' ${NULLNESS_JAVA_FILES}
+
+
+# Count the total possible locations at which a type annotation could be written.
+JAVAC_COUNT_ARGS = -processor org.checkerframework.common.util.count.Locations -implicit:class -Xlint:-processing
+possible-annos: ${ALL_GENERATED_FILES} compile-typequals compile
+	@echo ${JAVAC_COMMAND} ${JAVAC_COUNT_ARGS} ${CHECKER_ARGS} ...
+	@${JAVAC_COMMAND} ${JAVAC_COUNT_ARGS} ${CHECKER_ARGS} ${NULLNESS_JAVA_FILES}
+
+
+
+###########################################################################
+### Testing
+###
+
+test: tests
+
+tests: junit
+	cd ../tests && $(MAKE) all
+
+# run a static check on currently-compiled classes
+# ensure serialized classes have a date-style UID assigned
+check-serialize:
+#	for each non-gui class, run serialver
+#	accept only "is not Serializable" or "UID = 200#####" as output
+# TODO: This produces ouput in nondeterministic order
+	@find daikon -follow -name 'gui' -prune -o -name '*.class' -print | perl -ne 's|\.class\n$$||; s|/|.|g; print "Checking $$_... \t"; $$_ =~ s|\$$|\\\$$|g; $$msg =`serialver -J-Djava.compiler=NONE $$_ 2>&1`; if ($$msg =~ m/is not Serializable/) { print "ok (not serialized)\n"; next; } if ($$msg =~m/UID = (200\d[01]\d[0123]\d)L;/) { print "ok ($$1)\n"; next; }  print "WARNING: incorrect: $$msg";'
+
+
+.PHONY: junit
+junit:
+	@echo "Running unit (not system) tests..."
+	LC_ALL=en_US.UTF-8 ${JAVA_COMMAND} org.junit.runner.JUnitCore daikon.test.AllTestsSuite
+
+## TODO:  This target is never used!!!
+junit-all: junit
+	@# Alternately, MasterUnitTester could run SplitterFactoryTest,
+	@# but I'm having trouble with that, apparently due to hard-coded
+	@# directory paths.  And these tests are slow, so we want them to
+	@# be separate anyway.
+	${JAVA_COMMAND} daikon.test.split.SplitterFactoryTest
+
+###
+### Clover (code coverage)
+###
+
+CLOVER := $(HOME)/clover
+CLOVER_CMD := ${JAVA_COMMAND} -cp $(CLOVER)/clover-1.3.1/lib/clover.jar \
+									com.cenqua.clover.CloverInstr -jdk14
+CLOVER_CP := $(subst ${DAIKONDIR}/java,$(CLOVER)/java,$(DAIKON_CLASSPATH))
+CLOVER_CP := $(CLOVER_CP):$(CLOVER)/clover-1.3.1/lib/clover.jar
+
+clover: all_directly
+	/bin/rm -rf $(CLOVER)/java
+	mkdir $(CLOVER)/java
+	cd $(CLOVER)/java; ln -s ${DAIKONDIR}/java/jtb
+	cd $(CLOVER)/java; ln -s ${DAIKONDIR}/java/lib
+	cp Makefile $(CLOVER)/java
+	mkdir $(CLOVER)/java/daikon
+	(cd daikon; tar cf - .) | (cd $(CLOVER)/java/daikon; tar xfBp -)
+	chmod -R a+w $(CLOVER)/java/daikon
+	mkdir $(CLOVER)/java/utilMDE
+	(cd utilMDE; tar cf - .) | (cd $(CLOVER)/java/utilMDE; tar xfBp -)
+	chmod -R a+w $(CLOVER)/java/utilMDE
+	$(CLOVER_CMD) -i $(CLOVER)/clover.db -s daikon -d $(CLOVER)/java/daikon
+	$(CLOVER_CMD) -i $(CLOVER)/clover.db -s utilMDE -d $(CLOVER)/java/utilMDE
+	cd $(CLOVER)/java; \
+	  ${JAVAC_COMMAND} -classpath $(CLOVER_CP) -g -target 1.1 daikon/Daikon.java
+
+
+###########################################################################
+### Documentation
+###
+
+JAVADOC_DEST = api
+# ${DAIKONDIR}/java should not be in classpath, to avoid Javadoc error
+# "Multiple sources of package comments found for package"
+JAVADOC_FLAGS_COMMON = -breakiterator -quiet -linksource -noqualifier all \
+                -source 8 \
+                -Xmaxerrs 100000 -Xmaxwarns 100000 \
+                -d $(JAVADOC_DEST) \
+                -linkoffline https://docs.oracle.com/javase/8/docs/api/ https://docs.oracle.com/javase/8/docs/api/ \
+                -classpath "$(subst ${DAIKONDIR}/java:,,${DAIKON_CLASSPATH})"
+JAVADOC_FLAGS = ${JAVADOC_FLAGS_COMMON} \
+                -docletpath "${DOCLETPATH}"
+
+# Daikon packages except for util (which is just a copy of plume)
+DAIKON_PACKAGES := $(shell ls -F daikon | grep / | egrep -v 'util' \
+				   | sed s./.. | sed s/^/daikon./ | tr '\n' ':')
+
+javadoc: api
+
+# Don't run Javadoc on files that require the Checker Framework.
+.PHONY: javadoc-files.txt
+javadoc-files.txt:
+	$(MAKE) ${AUTO_GENERATED_FILES}
+	find * \( -name 'PrototypeChecker.java' -o -name 'VIndexChecker.java' -o -name 'VIndexAnnotatedTypeFactory.java' \) -prune -o -name "*.java" -print | ${SORT_DIRECTORY_ORDER} > javadoc-files.txt
+
+ifeq ($(shell java -version 2>&1 | sed -n ';s/.* version "\(.*\)\.\(.*\)\..*"/\1.\2/p;'),1.8)
+  ifneq ($(shell sed -n ';s/^NAME="\(.*\)"/\1/p;' /etc/os-release),Ubuntu)
+    SKIP_JAVADOC=1
+  endif
+endif
+
+# Build javadoc using the daikon package and all subpackages of daikon.
+.PHONY: api
+api: ../utils/plume-scripts ../utils/html-tools $(JAVA_FILES)
+ifeq ($(SKIP_JAVADOC),1)
+	java -version
+	@echo SKIP_JAVADOC=${SKIP_JAVADOC}
+	@echo Skipping javadoc on JDK 1.8 because of https://bugs.openjdk.java.net/browse/JDK-8215542
+else
+	mkdir -p $(JAVADOC_DEST)
+	@make javadoc-files.txt
+	${JAVADOC_COMMAND} -J-Xmx2600m -J-ea $(JAVADOC_FLAGS) -Xdoclint:all \
+		@javadoc-files.txt
+	@rm -f javadoc-files.txt
+	cd $(JAVADOC_DEST) && $(PLUMESCRIPTS)/preplace '^ *&#64;cindex.*' ''
+	cp -pf ../doc/daikon-favicon.png $(JAVADOC_DEST)
+	cd $(JAVADOC_DEST) && $(HTMLTOOLS)/html-add-favicon . daikon-favicon.png
+endif
+
+# Run Javadoc on each file individually, to determine which one is crashing Javadoc.
+# Search the *-javadoc-output.txt files to find out which one contains the crash log.
+# Then, you need to do binary search on that file.
+api-test-each: ../utils/plume-scripts ../utils/html-tools
+	mkdir -p $(JAVADOC_DEST)
+	@make javadoc-files.txt
+	while read filename ; do echo "filename: $$filename" ; ${JAVADOC_COMMAND} -J-Xmx2600m -J-ea $(JAVADOC_FLAGS) $$filename > $$filename-javadoc-output.txt 2>&1 ; done < javadoc-files.txt
+	@rm -f javadoc-files.txt
+
+## Make Javadoc with private fields for people working on source code.
+## It is generated in the standard location, directory api/
+api-private: ../utils/plume-scripts $(AUTO_GENERATED_FILES)
+	mkdir -p $(JAVADOC_DEST)
+	${JAVADOC_COMMAND} -J-Xmx2600m -J-ea $(JAVADOC_FLAGS) -private -Xdoclint:all \
+	  daikon -subpackages $(DAIKON_PACKAGES):plume
+	cd api && ../../utils/plume-scripts/preplace '^ *&#64;cindex.*' ''
+
+## Test that Javadoc exists.
+## You should regenerate api/ after running this.
+requireJavadoc: $(JAVA_FILES)
+	${JAVA} -jar $(wildcard ${DAIKONDIR}/java/lib/require-javadoc-*-all.jar) ${DAIKONDIR}/java
+
+
+../doc/invariants-doc.texinfo: ../utils/plume-scripts javadoc-files.txt daikon/config/InvariantDoclet.class daikon/config/HtmlToTexinfo.class
+	${JAVADOC_COMMAND} -J-Xmx2600m -J-ea -docletpath "${DOCLETPATH}" -classpath "${DAIKON_CLASSPATH}" -doclet daikon.config.InvariantDoclet \
+		--texinfo $@ \
+		@javadoc-files.txt
+	@rm -f javadoc-files.txt
+
+# This fails if both . and pwd are on CLASSPATH:  classes are found twice
+# resulting in a duplicate class warning.
+
+../doc/config-options.texinfo: ../utils/plume-scripts javadoc-files.txt daikon/config/ParameterDoclet.class daikon/config/HtmlToTexinfo.class
+	${JAVADOC_COMMAND} -J-Xmx2600m -J-ea -docletpath "${DOCLETPATH}" -classpath "${DAIKON_CLASSPATH}" -doclet daikon.config.ParameterDoclet \
+		--texinfo $@ \
+		@javadoc-files.txt
+	@rm -f javadoc-files.txt
+	perl -pi -e 's/&#64;cindex/\@cindex/g' $@
+
+daikon/config/InvariantDoclet.class: daikon/config/InvariantDoclet.java
+	${MAKE} compile
+
+daikon/config/ParameterDoclet.class: daikon/config/ParameterDoclet.java
+	${MAKE} compile
+
+daikon/config/HtmlToTexinfo.class: daikon/config/HtmlToTexinfo.java
+	${MAKE} compile
+
+
+###########################################################################
+### For debugging the Makefile.
+###
+
+showvars:
+	@echo PWD = $(shell pwd)
+	@echo OSTYPE = $(OSTYPE)
+	@echo PATH = $(PATH)
+
+	@echo JAVA_HOME = $(JAVA_HOME)
+	which java
+	java -version
+	which javac
+	javac -version
+	@echo JAVA = ${JAVA}
+	@echo JAVA_COMMAND = ${JAVA_COMMAND}
+	@echo JAVAC = ${JAVAC}
+	@echo JAVAC_ARGS = ${JAVAC_ARGS}
+	@echo JAVAC_COMMAND = ${JAVAC_COMMAND}
+	@echo SKIP_JAVADOC = ${SKIP_JAVADOC}
+
+	@echo CLASSPATH = "${CLASSPATH}"
+	@echo DAIKON_CLASSPATH = "${DAIKON_CLASSPATH}"
+
+	@echo AUTO_GENERATED_FILES = ${AUTO_GENERATED_FILES}
+	@echo DAIKONDIR = "${DAIKONDIR}"
+	@echo DAIKONSCRIPTS = ${DAIKONSCRIPTS}
+	@echo PLUMESCRIPTS = ${PLUMESCRIPTS}
+
+	@echo DAIKON_JAVA_FILES = $(DAIKON_JAVA_FILES)
+	@echo JAVA_FILES = $(JAVA_FILES)
+	@echo JAVA_FILES_FOR_STYLE = $(JAVA_FILES_FOR_STYLE)
+	@echo JAVA_FILES_FOR_FORMAT = $(JAVA_FILES_FOR_FORMAT)
+	@echo TAG_FILES = $(TAG_FILES)
+	@echo INTERNING_JAVA_FILES = $(INTERNING_JAVA_FILES)
+	@echo INTERNING_JAVA_FILES_COUNTS = $(INTERNING_JAVA_FILES_COUNTS)
+
+	@echo CHECKERFRAMEWORK = $(CHECKERFRAMEWORK)
+	@echo CHECKERFRAMEWORK_JAR_DIR = $(CHECKERFRAMEWORK_JAR_DIR)
+	@echo CHECKERFRAMEWORK_JAR = $(CHECKERFRAMEWORK_JAR)
+	@echo CHECKERFRAMEWORK_JAVAC = $(CHECKERFRAMEWORK_JAVAC)
+
+
+dump: showvars
+
+showvar_JAVA_FILES:
+	@echo ${JAVA_FILES}
+
+showvar_CLASS_FILES:
+	@echo $(subst .java,.class,${JAVA_FILES})
+
+showvar_JAVA_FILES_FOR_FORMAT:
+	@echo ${JAVA_FILES_FOR_FORMAT}
+
+list_java_files: showvar_JAVA_FILES
+
+
+###########################################################################
+### Automatically generated files
+###
+
+## First, a file not generated via java-cpp.
+daikon/test/split/SplitterFactoryTest.java: daikon/test/split/SplitterFactoryTestUpdater.java daikon/split/TokenReplacer.java
+	${JAVAC_COMMAND} $^
+	rm -f $@
+# Has expected errors while compiling splitter files.
+# Suppress output unless whole command fails.
+	(${JAVA_COMMAND} daikon.test.split.SplitterFactoryTestUpdater > /dev/null 2>&1) || ${JAVA_COMMAND} daikon.test.split.SplitterFactoryTestUpdater
+	chmod a-w $@
+
+${AUTO_GENERATED_CLASSES_2}: ${AUTO_GENERATED_FILES_2}
+	${JAVAC_COMMAND} ${AUTO_GENERATED_FILES_2}
+
+## This would be an alternative to the above rule for ${AUTO_GENERATED_CLASSES_2}.
+# daikon/test/split/SplitterFactoryTest.class: daikon/test/split/SplitterFactoryTest.java
+# 	${JAVAC_COMMAND} $<
+
+# Create the auto-generated files with jpp
+.PHONY: jpp
+jpp: ../utils/plume-scripts ${AUTO_GENERATED_FILES}
+
+# Use this rule if you do not have cpp or for some other reason do not want
+# to refresh the automatically generated .java files.  You should not do
+# this if those files are not up-to-date (that is, if you have modified the
+# .jpp files).  It is safe to do this with a distrubution that you have
+# just unpacked.
+avoid-jpp:
+	@echo "Any recent changes in the .jpp files will not get propagated."
+	touch ${AUTO_GENERATED_FILES}
+
+
+# ":=" does not work here; the variables get expanded too soon.
+# "-e" means exit immediately if any error, rather than returning
+# the status of the last command.
+
+# This rule does not work with make 3.77, but does work with make 3.78.
+JAVA_CPP ?= (rm -f $@; ${DAIKONSCRIPTS}/java-cpp -DDEFINEDVAR $< 2>&1 > $@ && chmod a-w $@)
+# Like the above, but also makes a backup file
+# JAVA_CPP = (mv -f $@ $@-bak; set -e; ${PLUMESCRIPTS}/java-cpp -DDEFINEDVAR $< > $@; chmod a-w $@)
+
+# JAVA_CPP = (cp -pf $@ $@-bak; set -e; java-cpp $< -DDEFINEDVAR > $@-postproc; mv -f $@-postproc $@; chmod a-w $@)
+## Here are alternate ways of writing the same command:
+## I could use "define", but that's specific to GNU Make
+## I can't do this because the CPP defined variable changes.
+# JAVA_CPP = (mv -f $@ $@-bak; set -e; java-cpp $< -DDEFINEDVAR > $@; chmod a-w $@)
+## These are used like:	$(JAVA_CPP_START) -DLOWER $(JAVA_CPP_END)
+# JAVA_CPP_START = (cp -pf $@ $@-bak; set -e; java-cpp $<
+# JAVA_CPP_END = > $@-postproc; mv -f $@-postproc $@; chmod a-w $@)
+
+daikon/PptSlice1.java: daikon/PptSlice.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=ARITY1)
+
+daikon/PptSlice2.java: daikon/PptSlice.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=ARITY2)
+
+daikon/PptSlice3.java: daikon/PptSlice.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=ARITY3)
+
+daikon/Quant.java: daikon/Quant.java.jpp daikon/QuantBody.java.jpp
+	$(JAVA_CPP)
+
+daikon/inv/ternary/threeScalar/FunctionBinary.java: daikon/inv/ternary/threeScalar/FunctionBinary.java.jpp daikon/inv/ternary/threeScalar/FunctionBinaryGeneric.java.jpp daikon/inv/ternary/threeScalar/FunctionBinarySymmetric.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONG)
+
+daikon/inv/ternary/threeScalar/FunctionBinaryFloat.java: daikon/inv/ternary/threeScalar/FunctionBinary.java.jpp daikon/inv/ternary/threeScalar/FunctionBinaryGeneric.java.jpp daikon/inv/ternary/threeScalar/FunctionBinarySymmetric.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLE)
+
+daikon/inv/ternary/threeScalar/ThreeScalar.java: daikon/inv/ternary/threeScalar/ThreeScalar.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONG)
+
+daikon/inv/ternary/threeScalar/ThreeFloat.java: daikon/inv/ternary/threeScalar/ThreeScalar.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLE)
+
+daikon/inv/ternary/threeScalar/LinearTernaryCore.java: daikon/inv/ternary/threeScalar/LinearTernaryCore.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONG)
+
+daikon/inv/ternary/threeScalar/LinearTernaryCoreFloat.java: daikon/inv/ternary/threeScalar/LinearTernaryCore.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLE)
+
+daikon/inv/ternary/threeScalar/LinearTernary.java: daikon/inv/ternary/threeScalar/LinearTernary.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONG)
+
+daikon/inv/ternary/threeScalar/LinearTernaryFloat.java: daikon/inv/ternary/threeScalar/LinearTernary.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLE)
+
+daikon/inv/unary/LowerBoundCore.java: daikon/inv/unary/BoundCore.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LOWER)
+
+daikon/inv/unary/UpperBoundCore.java: daikon/inv/unary/BoundCore.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=UPPER)
+
+daikon/inv/unary/LowerBoundCoreFloat.java: daikon/inv/unary/BoundCore.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LOWERFLOAT)
+
+daikon/inv/unary/UpperBoundCoreFloat.java: daikon/inv/unary/BoundCore.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=UPPERFLOAT)
+
+daikon/inv/unary/scalar/NonZero.java: daikon/inv/unary/scalar/NonZero.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SCALAR)
+
+daikon/inv/unary/scalar/NonZeroFloat.java: daikon/inv/unary/scalar/NonZero.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=FLOAT)
+
+daikon/inv/unary/scalar/RangeInt.java: daikon/inv/unary/scalar/Range.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SCALAR)
+
+daikon/inv/unary/scalar/RangeFloat.java: daikon/inv/unary/scalar/Range.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=FLOAT)
+
+daikon/inv/unary/scalar/LowerBound.java: daikon/inv/unary/scalar/Bound.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LOWER)
+
+daikon/inv/unary/scalar/UpperBound.java: daikon/inv/unary/scalar/Bound.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=UPPER)
+
+daikon/inv/unary/scalar/LowerBoundFloat.java: daikon/inv/unary/scalar/Bound.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LOWERFLOAT)
+
+daikon/inv/unary/scalar/UpperBoundFloat.java: daikon/inv/unary/scalar/Bound.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=UPPERFLOAT)
+
+daikon/inv/unary/scalar/OneOfScalar.java: daikon/inv/unary/OneOf.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SCALAR)
+
+daikon/inv/unary/scalar/OneOfFloat.java: daikon/inv/unary/OneOf.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=FLOAT)
+
+daikon/inv/unary/string/OneOfString.java: daikon/inv/unary/OneOf.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=STRING)
+
+daikon/inv/unary/sequence/EltRangeInt.java: daikon/inv/unary/scalar/Range.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SCALARSEQ)
+
+daikon/inv/unary/sequence/EltRangeFloat.java: daikon/inv/unary/scalar/Range.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=FLOATSEQ)
+
+daikon/inv/unary/sequence/OneOfSequence.java: daikon/inv/unary/OneOf.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SEQUENCE)
+
+daikon/inv/unary/sequence/OneOfFloatSequence.java: daikon/inv/unary/OneOf.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=FLOATSEQUENCE)
+
+daikon/inv/unary/sequence/EltOneOf.java: daikon/inv/unary/OneOf.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=ELT)
+
+daikon/inv/unary/sequence/EltOneOfFloat.java: daikon/inv/unary/OneOf.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=ELTFLOAT)
+
+daikon/inv/unary/sequence/EltLowerBound.java: daikon/inv/unary/scalar/Bound.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=ELTLOWER)
+
+daikon/inv/unary/sequence/EltLowerBoundFloat.java: daikon/inv/unary/scalar/Bound.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=ELTLOWERFLOAT)
+
+daikon/inv/unary/sequence/EltUpperBound.java: daikon/inv/unary/scalar/Bound.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=ELTUPPER)
+
+daikon/inv/unary/sequence/EltUpperBoundFloat.java: daikon/inv/unary/scalar/Bound.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=ELTUPPERFLOAT)
+
+daikon/inv/unary/sequence/NoDuplicates.java: daikon/inv/unary/sequence/NoDuplicates.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONG)
+
+daikon/inv/unary/sequence/NoDuplicatesFloat.java: daikon/inv/unary/sequence/NoDuplicates.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLE)
+
+daikon/inv/unary/sequence/SeqIndexIntEqual.java: daikon/inv/unary/sequence/SeqIndexComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=EQUAL)
+
+daikon/inv/unary/sequence/SeqIndexFloatEqual.java: daikon/inv/unary/sequence/SeqIndexComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=EQUALFLOAT)
+
+daikon/inv/unary/sequence/SeqIndexIntNonEqual.java: daikon/inv/unary/sequence/SeqIndexComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=NONEQUAL)
+
+daikon/inv/unary/sequence/SeqIndexFloatNonEqual.java: daikon/inv/unary/sequence/SeqIndexComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=NONEQUALFLOAT)
+
+daikon/inv/unary/sequence/SeqIndexIntLessThan.java: daikon/inv/unary/sequence/SeqIndexComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSTHAN)
+
+daikon/inv/unary/sequence/SeqIndexFloatLessThan.java: daikon/inv/unary/sequence/SeqIndexComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSTHANFLOAT)
+
+daikon/inv/unary/sequence/SeqIndexIntLessEqual.java: daikon/inv/unary/sequence/SeqIndexComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSEQUAL)
+
+daikon/inv/unary/sequence/SeqIndexFloatLessEqual.java: daikon/inv/unary/sequence/SeqIndexComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSEQUALFLOAT)
+
+daikon/inv/unary/sequence/SeqIndexIntGreaterThan.java: daikon/inv/unary/sequence/SeqIndexComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATERTHAN)
+
+daikon/inv/unary/sequence/SeqIndexFloatGreaterThan.java: daikon/inv/unary/sequence/SeqIndexComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATERTHANFLOAT)
+
+daikon/inv/unary/sequence/SeqIndexIntGreaterEqual.java: daikon/inv/unary/sequence/SeqIndexComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATEREQUAL)
+
+daikon/inv/unary/sequence/SeqIndexFloatGreaterEqual.java: daikon/inv/unary/sequence/SeqIndexComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATEREQUALFLOAT)
+
+daikon/inv/unary/sequence/CommonSequence.java: daikon/inv/unary/sequence/CommonSequence.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONG)
+
+daikon/inv/unary/sequence/CommonFloatSequence.java: daikon/inv/unary/sequence/CommonSequence.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLE)
+
+daikon/inv/unary/sequence/EltNonZero.java: daikon/inv/unary/sequence/EltNonZero.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONG)
+
+daikon/inv/unary/sequence/EltNonZeroFloat.java: daikon/inv/unary/sequence/EltNonZero.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLE)
+
+daikon/inv/unary/sequence/EltwiseIntComparison.java: daikon/inv/unary/sequence/EltwiseIntComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONG)
+
+daikon/inv/unary/sequence/EltwiseFloatComparison.java: daikon/inv/unary/sequence/EltwiseIntComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLE)
+
+daikon/inv/unary/sequence/EltwiseIntEqual.java: daikon/inv/unary/sequence/EltwiseIntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=EQUAL)
+
+daikon/inv/unary/sequence/EltwiseIntLessThan.java: daikon/inv/unary/sequence/EltwiseIntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSTHAN)
+
+daikon/inv/unary/sequence/EltwiseIntLessEqual.java: daikon/inv/unary/sequence/EltwiseIntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSEQUAL)
+
+daikon/inv/unary/sequence/EltwiseIntGreaterThan.java: daikon/inv/unary/sequence/EltwiseIntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATERTHAN)
+
+daikon/inv/unary/sequence/EltwiseIntGreaterEqual.java: daikon/inv/unary/sequence/EltwiseIntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATEREQUAL)
+
+daikon/inv/unary/sequence/EltwiseFloatEqual.java: daikon/inv/unary/sequence/EltwiseIntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=EQUALFLOAT)
+
+daikon/inv/unary/sequence/EltwiseFloatLessThan.java: daikon/inv/unary/sequence/EltwiseIntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSTHANFLOAT)
+
+daikon/inv/unary/sequence/EltwiseFloatLessEqual.java: daikon/inv/unary/sequence/EltwiseIntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSEQUALFLOAT)
+
+daikon/inv/unary/sequence/EltwiseFloatGreaterThan.java: daikon/inv/unary/sequence/EltwiseIntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATERTHANFLOAT)
+
+daikon/inv/unary/sequence/EltwiseFloatGreaterEqual.java: daikon/inv/unary/sequence/EltwiseIntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATEREQUALFLOAT)
+
+daikon/inv/unary/stringsequence/EltOneOfString.java: daikon/inv/unary/OneOf.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=ELTSTRING)
+
+daikon/inv/unary/stringsequence/OneOfStringSequence.java: daikon/inv/unary/OneOf.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=STRINGSEQUENCE)
+
+daikon/inv/binary/sequenceScalar/Member.java: daikon/inv/binary/Member.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SCALAR)
+
+daikon/inv/binary/sequenceScalar/MemberFloat.java: daikon/inv/binary/Member.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=FLOAT)
+
+daikon/inv/binary/sequenceString/MemberString.java: daikon/inv/binary/Member.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=STRING)
+
+daikon/inv/binary/sequenceString/SequenceString.java: daikon/inv/binary/sequenceScalar/SequenceScalar.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPESTRING)
+
+daikon/inv/binary/sequenceScalar/SeqIntLessThan.java: daikon/inv/binary/sequenceScalar/SeqIntComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSTHAN)
+
+daikon/inv/binary/sequenceScalar/SeqIntGreaterThan.java: daikon/inv/binary/sequenceScalar/SeqIntComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATERTHAN)
+
+daikon/inv/binary/sequenceScalar/SeqIntLessEqual.java: daikon/inv/binary/sequenceScalar/SeqIntComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSEQUAL)
+
+daikon/inv/binary/sequenceScalar/SeqIntGreaterEqual.java: daikon/inv/binary/sequenceScalar/SeqIntComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATEREQUAL)
+
+daikon/inv/binary/sequenceScalar/SeqIntEqual.java: daikon/inv/binary/sequenceScalar/SeqIntComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=EQUAL)
+
+daikon/inv/binary/sequenceScalar/SeqFloatLessThan.java: daikon/inv/binary/sequenceScalar/SeqIntComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSTHANFLOAT)
+
+daikon/inv/binary/sequenceScalar/SeqFloatGreaterThan.java: daikon/inv/binary/sequenceScalar/SeqIntComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATERTHANFLOAT)
+
+daikon/inv/binary/sequenceScalar/SeqFloatLessEqual.java: daikon/inv/binary/sequenceScalar/SeqIntComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSEQUALFLOAT)
+
+daikon/inv/binary/sequenceScalar/SeqFloatGreaterEqual.java: daikon/inv/binary/sequenceScalar/SeqIntComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATEREQUALFLOAT)
+
+daikon/inv/binary/sequenceScalar/SeqFloatEqual.java: daikon/inv/binary/sequenceScalar/SeqIntComparison.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=EQUALFLOAT)
+
+daikon/inv/binary/sequenceScalar/SequenceScalar.java: daikon/inv/binary/sequenceScalar/SequenceScalar.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONG)
+
+daikon/inv/binary/sequenceScalar/SequenceFloat.java: daikon/inv/binary/sequenceScalar/SequenceScalar.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLE)
+
+daikon/inv/binary/twoScalar/TwoScalar.java: daikon/inv/binary/BinaryInvariant.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONG)
+
+daikon/inv/binary/twoScalar/TwoFloat.java: daikon/inv/binary/BinaryInvariant.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLE)
+
+daikon/inv/binary/twoScalar/IntEqual.java: daikon/inv/binary/twoScalar/IntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=EQUAL)
+
+daikon/inv/binary/twoScalar/FloatEqual.java: daikon/inv/binary/twoScalar/IntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=EQUALFLOAT)
+
+daikon/inv/binary/twoString/TwoString.java: daikon/inv/binary/BinaryInvariant.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPESTRING)
+
+daikon/inv/binary/twoString/StringEqual.java: daikon/inv/binary/twoScalar/IntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=EQUALSTRING)
+
+daikon/inv/binary/twoScalar/IntNonEqual.java: daikon/inv/binary/twoScalar/IntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=NONEQUAL)
+
+daikon/inv/binary/twoScalar/FloatNonEqual.java: daikon/inv/binary/twoScalar/IntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=NONEQUALFLOAT)
+
+daikon/inv/binary/twoString/StringNonEqual.java: daikon/inv/binary/twoScalar/IntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=NONEQUALSTRING)
+
+daikon/inv/binary/twoScalar/IntLessThan.java: daikon/inv/binary/twoScalar/IntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSTHAN)
+
+daikon/inv/binary/twoScalar/FloatLessThan.java: daikon/inv/binary/twoScalar/IntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSTHANFLOAT)
+
+daikon/inv/binary/twoString/StringLessThan.java: daikon/inv/binary/twoScalar/IntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSTHANSTRING)
+
+daikon/inv/binary/twoScalar/IntLessEqual.java: daikon/inv/binary/twoScalar/IntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSEQUAL)
+
+daikon/inv/binary/twoScalar/FloatLessEqual.java: daikon/inv/binary/twoScalar/IntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSEQUALFLOAT)
+
+daikon/inv/binary/twoString/StringLessEqual.java: daikon/inv/binary/twoScalar/IntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSEQUALSTRING)
+
+daikon/inv/binary/twoScalar/IntGreaterThan.java: daikon/inv/binary/twoScalar/IntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATERTHAN)
+
+daikon/inv/binary/twoScalar/FloatGreaterThan.java: daikon/inv/binary/twoScalar/IntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATERTHANFLOAT)
+
+daikon/inv/binary/twoString/StringGreaterThan.java: daikon/inv/binary/twoScalar/IntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATERTHANSTRING)
+
+daikon/inv/binary/twoScalar/IntGreaterEqual.java: daikon/inv/binary/twoScalar/IntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATEREQUAL)
+
+daikon/inv/binary/twoScalar/FloatGreaterEqual.java: daikon/inv/binary/twoScalar/IntComparisons.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATEREQUALFLOAT)
+
+daikon/inv/binary/twoString/StringGreaterEqual.java: daikon/inv/binary/twoScalar/IntComparisons.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATEREQUALSTRING)
+
+daikon/inv/binary/twoScalar/NumericInt.java: daikon/inv/binary/twoScalar/Numeric.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONG)
+
+daikon/inv/binary/twoScalar/NumericFloat.java: daikon/inv/binary/twoScalar/Numeric.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLE)
+
+daikon/inv/binary/twoString/StdString.java: daikon/inv/binary/twoScalar/Numeric.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPESTRING)
+
+daikon/inv/binary/twoScalar/LinearBinaryCore.java: daikon/inv/binary/twoScalar/LinearBinaryCore.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONG)
+
+daikon/inv/binary/twoScalar/LinearBinaryCoreFloat.java: daikon/inv/binary/twoScalar/LinearBinaryCore.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLE)
+
+daikon/inv/binary/twoScalar/LinearBinary.java: daikon/inv/binary/twoScalar/LinearBinary.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONG)
+
+daikon/inv/binary/twoScalar/LinearBinaryFloat.java: daikon/inv/binary/twoScalar/LinearBinary.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLE)
+
+daikon/inv/binary/twoSequence/TwoSequence.java: daikon/inv/binary/BinaryInvariant.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONGSEQ)
+
+daikon/inv/binary/twoSequence/TwoSequenceFloat.java: daikon/inv/binary/BinaryInvariant.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLESEQ)
+
+daikon/inv/binary/twoSequence/TwoSequenceString.java: daikon/inv/binary/BinaryInvariant.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPESTRINGSEQ)
+
+daikon/inv/binary/twoSequence/SeqSeqIntEqual.java: daikon/inv/binary/twoSequence/SeqComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=EQUAL)
+
+daikon/inv/binary/twoSequence/SeqSeqIntLessThan.java: daikon/inv/binary/twoSequence/SeqComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSTHAN)
+
+daikon/inv/binary/twoSequence/SeqSeqIntGreaterThan.java: daikon/inv/binary/twoSequence/SeqComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATERTHAN)
+
+daikon/inv/binary/twoSequence/SeqSeqIntLessEqual.java: daikon/inv/binary/twoSequence/SeqComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSEQUAL)
+
+daikon/inv/binary/twoSequence/SeqSeqIntGreaterEqual.java: daikon/inv/binary/twoSequence/SeqComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATEREQUAL)
+
+daikon/inv/binary/twoSequence/SeqSeqFloatEqual.java: daikon/inv/binary/twoSequence/SeqComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=EQUALFLOAT)
+
+daikon/inv/binary/twoSequence/SeqSeqFloatLessThan.java: daikon/inv/binary/twoSequence/SeqComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSTHANFLOAT)
+
+daikon/inv/binary/twoSequence/SeqSeqFloatGreaterThan.java: daikon/inv/binary/twoSequence/SeqComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATERTHANFLOAT)
+
+daikon/inv/binary/twoSequence/SeqSeqFloatLessEqual.java: daikon/inv/binary/twoSequence/SeqComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSEQUALFLOAT)
+
+daikon/inv/binary/twoSequence/SeqSeqFloatGreaterEqual.java: daikon/inv/binary/twoSequence/SeqComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATEREQUALFLOAT)
+
+daikon/inv/binary/twoSequence/SeqSeqStringEqual.java: daikon/inv/binary/twoSequence/SeqComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=EQUALSTRING)
+
+daikon/inv/binary/twoSequence/SeqSeqStringLessThan.java: daikon/inv/binary/twoSequence/SeqComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSTHANSTRING)
+
+daikon/inv/binary/twoSequence/SeqSeqStringGreaterThan.java: daikon/inv/binary/twoSequence/SeqComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATERTHANSTRING)
+
+daikon/inv/binary/twoSequence/SeqSeqStringLessEqual.java: daikon/inv/binary/twoSequence/SeqComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSEQUALSTRING)
+
+daikon/inv/binary/twoSequence/SeqSeqStringGreaterEqual.java: daikon/inv/binary/twoSequence/SeqComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATEREQUALSTRING)
+
+daikon/inv/binary/twoSequence/Reverse.java: daikon/inv/binary/twoSequence/Reverse.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONG)
+
+daikon/inv/binary/twoSequence/ReverseFloat.java: daikon/inv/binary/twoSequence/Reverse.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLE)
+
+daikon/inv/binary/twoSequence/SubSequence.java: daikon/inv/binary/twoSequence/SubSequence.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SUBLONG)
+
+daikon/inv/binary/twoSequence/SuperSequence.java: daikon/inv/binary/twoSequence/SubSequence.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SUPERLONG)
+
+daikon/inv/binary/twoSequence/SubSequenceFloat.java: daikon/inv/binary/twoSequence/SubSequence.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SUBDOUBLE)
+
+daikon/inv/binary/twoSequence/SuperSequenceFloat.java: daikon/inv/binary/twoSequence/SubSequence.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SUPERDOUBLE)
+
+daikon/inv/binary/twoSequence/SubSet.java: daikon/inv/binary/twoSequence/SubSet.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SUB)
+
+daikon/inv/binary/twoSequence/SubSetFloat.java: daikon/inv/binary/twoSequence/SubSet.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SUBFLOAT)
+
+daikon/inv/binary/twoSequence/SuperSet.java: daikon/inv/binary/twoSequence/SubSet.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SUP)
+
+daikon/inv/binary/twoSequence/SuperSetFloat.java: daikon/inv/binary/twoSequence/SubSet.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SUPFLOAT)
+
+daikon/inv/binary/twoSequence/PairwiseIntEqual.java: daikon/inv/binary/twoSequence/PairwiseIntComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=EQUAL)
+
+daikon/inv/binary/twoSequence/PairwiseIntLessThan.java: daikon/inv/binary/twoSequence/PairwiseIntComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSTHAN)
+
+daikon/inv/binary/twoSequence/PairwiseIntGreaterThan.java: daikon/inv/binary/twoSequence/PairwiseIntComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATERTHAN)
+
+daikon/inv/binary/twoSequence/PairwiseIntLessEqual.java: daikon/inv/binary/twoSequence/PairwiseIntComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSEQUAL)
+
+daikon/inv/binary/twoSequence/PairwiseIntGreaterEqual.java: daikon/inv/binary/twoSequence/PairwiseIntComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATEREQUAL)
+
+daikon/inv/binary/twoSequence/PairwiseFloatEqual.java: daikon/inv/binary/twoSequence/PairwiseIntComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=EQUALFLOAT)
+
+daikon/inv/binary/twoSequence/PairwiseFloatLessThan.java: daikon/inv/binary/twoSequence/PairwiseIntComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSTHANFLOAT)
+
+daikon/inv/binary/twoSequence/PairwiseFloatGreaterThan.java: daikon/inv/binary/twoSequence/PairwiseIntComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATERTHANFLOAT)
+
+daikon/inv/binary/twoSequence/PairwiseFloatLessEqual.java: daikon/inv/binary/twoSequence/PairwiseIntComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSEQUALFLOAT)
+
+daikon/inv/binary/twoSequence/PairwiseFloatGreaterEqual.java: daikon/inv/binary/twoSequence/PairwiseIntComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATEREQUALFLOAT)
+
+daikon/inv/binary/twoSequence/PairwiseStringEqual.java: daikon/inv/binary/twoSequence/PairwiseIntComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=EQUALSTRING)
+
+daikon/inv/binary/twoSequence/PairwiseStringLessThan.java: daikon/inv/binary/twoSequence/PairwiseIntComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSTHANSTRING)
+
+daikon/inv/binary/twoSequence/PairwiseStringGreaterThan.java: daikon/inv/binary/twoSequence/PairwiseIntComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATERTHANSTRING)
+
+daikon/inv/binary/twoSequence/PairwiseStringLessEqual.java: daikon/inv/binary/twoSequence/PairwiseIntComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=LESSEQUALSTRING)
+
+daikon/inv/binary/twoSequence/PairwiseStringGreaterEqual.java: daikon/inv/binary/twoSequence/PairwiseIntComparison.java.jpp daikon/inv/suppressionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=GREATEREQUALSTRING)
+
+daikon/inv/binary/twoSequence/PairwiseLinearBinary.java: daikon/inv/binary/twoSequence/PairwiseLinearBinary.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONG)
+
+daikon/inv/binary/twoSequence/PairwiseLinearBinaryFloat.java: daikon/inv/binary/twoSequence/PairwiseLinearBinary.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLE)
+
+daikon/inv/binary/twoSequence/PairwiseNumericInt.java: daikon/inv/binary/twoScalar/Numeric.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONGSEQ)
+
+daikon/inv/binary/twoSequence/PairwiseNumericFloat.java: daikon/inv/binary/twoScalar/Numeric.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLESEQ)
+
+daikon/inv/binary/twoSequence/PairwiseString.java: daikon/inv/binary/twoScalar/Numeric.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPESTRINGSEQ)
+
+daikon/derive/ternary/SequenceScalarArbitrarySubsequence.java: daikon/derive/ternary/SequenceArbitrarySubsequence.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SCALAR)
+
+daikon/derive/ternary/SequenceFloatArbitrarySubsequence.java: daikon/derive/ternary/SequenceArbitrarySubsequence.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=FLOAT)
+
+daikon/derive/ternary/SequenceStringArbitrarySubsequence.java: daikon/derive/ternary/SequenceArbitrarySubsequence.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=STRING)
+
+daikon/derive/ternary/SequenceScalarArbitrarySubsequenceFactory.java: daikon/derive/ternary/SequenceArbitrarySubsequenceFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SCALAR)
+
+daikon/derive/ternary/SequenceFloatArbitrarySubsequenceFactory.java: daikon/derive/ternary/SequenceArbitrarySubsequenceFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=FLOAT)
+
+daikon/derive/ternary/SequenceStringArbitrarySubsequenceFactory.java: daikon/derive/ternary/SequenceArbitrarySubsequenceFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=STRING)
+
+daikon/derive/binary/SequenceScalarSubscript.java: daikon/derive/binary/SequenceSubscript.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SCALAR)
+
+daikon/derive/binary/SequenceFloatSubscript.java: daikon/derive/binary/SequenceSubscript.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=FLOAT)
+
+daikon/derive/binary/SequenceStringSubscript.java: daikon/derive/binary/SequenceSubscript.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=STRING)
+
+daikon/derive/binary/SequenceScalarSubsequence.java: daikon/derive/binary/SequenceSubsequence.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SCALAR)
+
+daikon/derive/binary/SequenceFloatSubsequence.java: daikon/derive/binary/SequenceSubsequence.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=FLOAT)
+
+daikon/derive/binary/SequenceStringSubsequence.java: daikon/derive/binary/SequenceSubsequence.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=STRING)
+
+daikon/derive/binary/SequenceScalarSubscriptFactory.java: daikon/derive/binary/SequenceSubscriptFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SCALAR)
+
+daikon/derive/binary/SequenceFloatSubscriptFactory.java: daikon/derive/binary/SequenceSubscriptFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=FLOAT)
+
+daikon/derive/binary/SequenceStringSubscriptFactory.java: daikon/derive/binary/SequenceSubscriptFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=STRING)
+
+daikon/derive/binary/SequenceScalarIntersection.java: daikon/derive/binary/SequencesIntersection.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SCALAR)
+
+daikon/derive/binary/SequenceFloatIntersection.java: daikon/derive/binary/SequencesIntersection.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=FLOAT)
+
+daikon/derive/binary/SequenceStringIntersection.java: daikon/derive/binary/SequencesIntersection.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=STRING)
+
+daikon/derive/binary/SequenceScalarIntersectionFactory.java: daikon/derive/binary/SequencesIntersectionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SCALAR)
+
+daikon/derive/binary/SequenceFloatIntersectionFactory.java: daikon/derive/binary/SequencesIntersectionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=FLOAT)
+
+daikon/derive/binary/SequenceStringIntersectionFactory.java: daikon/derive/binary/SequencesIntersectionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=STRING)
+
+daikon/derive/binary/SequenceScalarUnion.java: daikon/derive/binary/SequencesUnion.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SCALAR)
+
+daikon/derive/binary/SequenceFloatUnion.java: daikon/derive/binary/SequencesUnion.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=FLOAT)
+
+daikon/derive/binary/SequenceStringUnion.java: daikon/derive/binary/SequencesUnion.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=STRING)
+
+daikon/derive/binary/SequenceScalarUnionFactory.java: daikon/derive/binary/SequencesUnionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=SCALAR)
+
+daikon/derive/binary/SequenceFloatUnionFactory.java: daikon/derive/binary/SequencesUnionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=FLOAT)
+
+daikon/derive/binary/SequenceStringUnionFactory.java: daikon/derive/binary/SequencesUnionFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=STRING)
+
+daikon/derive/binary/SequencesPredicate.java: daikon/derive/binary/SequencesPredicate.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONG)
+
+daikon/derive/binary/SequencesPredicateFloat.java: daikon/derive/binary/SequencesPredicate.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLE)
+
+daikon/derive/binary/SequencesPredicateFactory.java: daikon/derive/binary/SequencesPredicateFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONG)
+
+daikon/derive/binary/SequencesPredicateFactoryFloat.java: daikon/derive/binary/SequencesPredicateFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLE)
+
+daikon/derive/binary/SequencesJoin.java: daikon/derive/binary/SequencesJoin.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONG)
+
+daikon/derive/binary/SequencesJoinFloat.java: daikon/derive/binary/SequencesJoin.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLE)
+
+daikon/derive/binary/SequencesJoinFactory.java: daikon/derive/binary/SequencesJoinFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONG)
+
+daikon/derive/binary/SequencesJoinFactoryFloat.java: daikon/derive/binary/SequencesJoinFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLE)
+
+daikon/derive/unary/SequenceInitial.java: daikon/derive/unary/SequenceInitial.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONG)
+
+daikon/derive/unary/SequenceInitialFloat.java: daikon/derive/unary/SequenceInitial.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLE)
+
+daikon/derive/unary/SequenceInitialFactory.java: daikon/derive/unary/SequenceInitialFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPELONG)
+
+daikon/derive/unary/SequenceInitialFactoryFloat.java: daikon/derive/unary/SequenceInitialFactory.java.jpp
+	$(JAVA_CPP:DEFINEDVAR=TYPEDOUBLE)
+
+
+###########################################################################
+### Delete-on-error
+###
+
+# Existence of this rule means that a target is deleted if has just changed
+# and its rule commands exit with nonzero status.  It's needed for the
+# java-cpp rules above.
+# (Actually, it isn't anymore, for I arrange not to overwrite the file
+# unless success.  But leave it in for now anyway.)
+.DELETE_ON_ERROR:

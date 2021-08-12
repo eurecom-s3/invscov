@@ -1,0 +1,154 @@
+===========================================================================
+..main():::ENTER
+::g_p == 1
+::g_q == 2
+::g_x == "my name is"
+::g_y == "pgbovine"
+===========================================================================
+..main():::EXIT
+::g_p == orig(::g_p)
+::g_q == orig(::g_q)
+::g_p == 1
+::g_q == 2
+::g_x == "MY"
+::g_y == "NAME"
+return == 0
+===========================================================================
+..simple_strcpy():::ENTER
+::g_p == 1
+::g_q == 2
+::g_x one of { "MY", "my name is" }
+::g_y one of { "NAME", "pgbovine" }
+dst one of { "", "my name is", "pgbovine" }
+===========================================================================
+..simple_strcpy():::EXIT
+::g_p == orig(::g_p)
+::g_q == orig(::g_q)
+return == orig(src)
+::g_p == 1
+::g_q == 2
+::g_x == "MY"
+::g_y one of { "NAME", "pgbovine" }
+===========================================================================
+..testCalloc():::ENTER
+::g_p == 1
+::g_q == 2
+::g_x == "my name is"
+::g_y == "pgbovine"
+a has only one value
+a[] == [0, 0]
+b has only one value
+b[] == [0, 0, 0]
+===========================================================================
+..testCalloc():::EXIT
+::g_p == orig(::g_p)
+::g_q == orig(::g_q)
+::g_x == orig(::g_x)
+::g_y == orig(::g_y)
+a[] == orig(a[])
+b[] == orig(b[])
+::g_p == 1
+::g_q == 2
+::g_x == "my name is"
+::g_y == "pgbovine"
+a[] == [0, 0]
+b[] == [0, 0, 0]
+===========================================================================
+..testDynamicSimpleStrcpy():::ENTER
+::g_p == 1
+::g_q == 2
+::g_x == "MY"
+::g_y == "NAME"
+x == "hello"
+y == "world"
+===========================================================================
+..testDynamicSimpleStrcpy():::EXIT
+::g_p == orig(::g_p)
+::g_q == orig(::g_q)
+::g_x == orig(::g_x)
+::g_y == orig(::g_y)
+::g_p == 1
+::g_q == 2
+::g_x == "MY"
+::g_y == "NAME"
+===========================================================================
+..testGlobalSimpleStrcpy():::ENTER
+::g_x == x
+::g_y == y
+::g_p == 1
+::g_q == 2
+::g_x == "MY"
+::g_y == "NAME"
+===========================================================================
+..testGlobalSimpleStrcpy():::EXIT
+::g_p == orig(::g_p)
+::g_q == orig(::g_q)
+::g_x == orig(::g_x)
+::g_x == orig(x)
+::g_y == orig(::g_y)
+::g_y == orig(y)
+::g_p == 1
+::g_q == 2
+::g_x == "MY"
+::g_y == "NAME"
+===========================================================================
+..testMalloc():::ENTER
+::g_p == 1
+::g_q == 2
+::g_x == "my name is"
+::g_y == "pgbovine"
+a has only one value
+a[] == [101]
+b has only one value
+b[] == [202]
+===========================================================================
+..testMalloc():::EXIT
+::g_p == orig(::g_p)
+::g_q == orig(::g_q)
+::g_x == orig(::g_x)
+::g_y == orig(::g_y)
+a[] == orig(a[])
+b[] == orig(b[])
+::g_p == 1
+::g_q == 2
+::g_x == "my name is"
+::g_y == "pgbovine"
+a[] == [101]
+b[] == [202]
+===========================================================================
+..testStrCalloc():::ENTER
+::g_p == 1
+::g_q == 2
+::g_x == "my name is"
+::g_y == "pgbovine"
+a == ""
+b == ""
+===========================================================================
+..testStrCalloc():::EXIT
+::g_p == orig(::g_p)
+::g_q == orig(::g_q)
+::g_x == orig(::g_x)
+::g_y == orig(::g_y)
+::g_p == 1
+::g_q == 2
+::g_x == "my name is"
+::g_y == "pgbovine"
+===========================================================================
+..testTrivial():::ENTER
+::g_p == 1
+::g_q == 2
+::g_x == "MY"
+::g_y == "NAME"
+a one of { 1, 2 }
+b one of { 5, 10 }
+===========================================================================
+..testTrivial():::EXIT
+::g_p == orig(::g_p)
+::g_q == orig(::g_q)
+::g_x == orig(::g_x)
+::g_y == orig(::g_y)
+::g_p == 1
+::g_q == 2
+::g_x == "MY"
+::g_y == "NAME"
+return one of { 6, 12 }

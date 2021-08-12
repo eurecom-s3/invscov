@@ -1,0 +1,369 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+import re
+import json
+
+invscov_outpath = os.getenv("INVSCOV_OUTPUT_PATH")
+if invscov_outpath is None:
+    invscov_outpath = "invscov_output"
+    print("WARN: INVSCOV_OUTPUT_PATH env not set, fallback to default 'invscov_output'")
+
+abort_mode = False
+
+INT_RE = re.compile(r"^[-+]?[0-9]+$")
+FLOAT_RE = re.compile("^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$")
+
+BIN_OPS = ("==", "!=", ">", "<", ">=", "<=")
+GT_CMP_OPS = (">", ">=")
+LT_CMP_OPS = ("<", "<=")
+
+OPERATORS = ("+", "-", "*", "/", "%", "&", "|", "^", "~", "==", "!=", ">", "<", ">=", "<=")
+
+CMP_MAX_OPS = ("!=", "<", ">", ">=", "<=")
+
+code = []
+fnid = 1
+max_id = 0
+set_id = 0
+
+specs = {}
+
+blacklist = {}
+var_types = {}
+
+def next_power_of_2(x):  
+    return 1 if x == 0 else 2**(x - 1).bit_length()
+
+def is_int(x):
+    return re.match(INT_RE, x) or (x[-1] == "L" and re.match(INT_RE, x[:-1]))
+
+def is_float(x):
+    return re.match(FLOAT_RE, x)
+
+def is_ident(x):
+    if len(x) == 0: return False
+    if x[0] in "1234567890": return False
+    for c in x:
+        if c not in "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890_.:<>":
+            return False
+    return True
+
+def get_c_type(t):
+    base_types = {"i8": "int8_t", "i16": "int16_t", "i32": "int32_t",
+                  "i64": "int64_t", "u8": "uint8_t", "u16": "uint16_t",
+                  "u32": "uint32_t", "u64": "uint64_t", "float": "float",
+                  "double": "double"}
+    if t in base_types:
+        return base_types[t]
+    return "uintptr_t"
+
+def type_sizeof(t):
+    return {"i8":1, "int8_t":1, "i16":2, "int16_t":2, "i32":4, 
+            "int32_t":4, "i64":8, "int64_t":8,
+            "u8":1, "uint8_t":1, "u16":2, "uint16_t":2, "u32":4, 
+            "uint32_t":4, "u64":8, "uint64_t":8}.get(t, None)
+
+def is_in_blacklist(v, bl):
+    n = v
+    if n.startswith("orig("):
+        n = v[len("orig("):v.find(")")]
+        if n in bl: return True
+    if n.startswith("ORIG:"):
+        n = v[len("ORIG:"):]
+        if n in bl: return True
+    return n in bl
+
+def parse_inv(funcname, ppt, inv):
+    global code, fnid, max_id, set_id, blacklist, var_types
+    if len(inv) < 2:
+        return
+    bl = []
+    if funcname in blacklist and ppt in blacklist[funcname]:
+        bl = blacklist[funcname][ppt]
+    if ppt == "EXIT" and ppt not in var_types[funcname]:
+        types = var_types[funcname]["EXIT0"]
+    else:
+        types = var_types[funcname][ppt]
+    
+    if len(inv) >= 5 and inv[1] == "one" and inv[2] == "of" and inv[3] == "{" and inv[-1] == "}":
+        x = inv[0]
+        if x.startswith("orig("):
+            x = x[len("orig("):x.find(")")]
+            x = "ORIG:" + x
+        if not is_ident(x):
+            return
+        t = get_c_type(types[x.replace("ORIG:", "")])
+        nums = "".join(inv[4: -1]).split(",")
+        cnt = 0
+        checks = []
+        for n in nums:
+            n = n.strip()
+            if re.match(FLOAT_RE, n) is None and not is_int(n):
+                return
+            if n.endswith("L"):
+                n = n[:-1]
+                if int(n.strip()) > 2**32-1:
+                    n += "LL"
+            n = "(%s)" % t + n
+            checks.append("v0 == " + n)
+        return " || ".join(checks), [(t, x)], "HANDLE_CONSTR" #"HANDLE_CONSTR_ONEOF"
+        #if x.startswith("LOC_"): # one of for locals
+        #  return " || ".join(checks), [(t, x)], "HANDLE_CONSTR_ONEOF" #"HANDLE_CONSTR_ONEOF"
+        #return " || ".join(checks), [(t, x)], "HANDLE_CONSTR" #"HANDLE_CONSTR_ONEOF"
+    
+    # != null are too much useless constrs
+    #if len(inv) > 2 and inv[-1] == "null" and inv[-2] == "!=":
+    #    return
+    
+    numvars = 0
+    variables = []
+    parsed = []
+    for x in inv:
+        pow2 = False
+        if x.endswith("**2"):
+            pow2 = True
+            x = x[:-3]
+        if x == "null":
+            x = "0"
+        if x.startswith("orig("):
+            x = x[len("orig("):x.find(")")]
+            x = "ORIG:" + x
+        if is_int(x):
+            if "L" in x:
+                x = x[:-1]
+            if int(x.strip()) >= 2**32:
+                x += "LL"
+            parsed += [x]
+        elif is_float(x):
+            parsed += [x]
+        elif x in OPERATORS:
+            parsed += [x]
+        elif is_ident(x):
+            if is_in_blacklist(x, bl):
+                return
+            if pow2:
+                parsed += ["v%d * v%d" % (numvars, numvars)]
+            else:
+                parsed += ["v%d" % numvars]
+            numvars += 1
+            if x.replace("ORIG:", "") not in types:
+                return
+            t = get_c_type(types[x.replace("ORIG:", "")])
+            #if t == "uintptr_t": # TODO should we handle pointer constraints?
+            #    return
+            variables += [(t, x)]
+        else:
+            return
+    notzero = []
+    for i in range(len(parsed)):
+        if parsed[i] in ("/", "%"):
+            if is_ident(parsed[i+1]):
+                notzero.append(parsed[i+1])
+        if parsed[i] == "%":
+            float_1 = is_float(parsed[i-1]) or (parsed[i-1].startswith("v") and variables[int(parsed[i-1][1:])][0] in ("double", "float"))
+            float_2 = is_float(parsed[i+1]) or (parsed[i+1].startswith("v") and variables[int(parsed[i+1][1:])][0] in ("double", "float"))
+            if float_1 or float_2:
+                # Remove return to enable fmod
+                return None
+                rem = []
+                if len(parsed) > i+1:
+                    rem = parsed[i+2:]
+                parsed = parsed[:i-1] + ["fmod(", parsed[i-1], ",", parsed[i+1], ")"] + rem
+    if len(parsed) == 3 and is_int(parsed[2]) and numvars > 0:
+        parsed[2] = "(%s)" % variables[0][0] + parsed[2]
+    if len(parsed) == 3 and parsed[1] in CMP_MAX_OPS:
+        tl = 0
+        if parsed[0].startswith("v") and re.match(INT_RE, parsed[0][1:]):
+            s1 = type_sizeof(variables[int(parsed[0][1:])][0])
+            if s1 is None:
+                return " && ".join(notzero + [" ".join(parsed)]), variables, "HANDLE_CONSTR"
+            tl = max(s1, tl)
+        if parsed[2].startswith("v") and re.match(INT_RE, parsed[2][1:]):
+            s2 = type_sizeof(variables[int(parsed[2][1:])][0])
+            if s2 is None:
+                return " && ".join(notzero + [" ".join(parsed)]), variables, "HANDLE_CONSTR"
+            tl = max(s2, tl)
+        if tl == 0:
+            return " && ".join(notzero + [" ".join(parsed)]), variables, "HANDLE_CONSTR"
+        a0 = parsed[0]
+        a1 = parsed[2]
+        if parsed[1] == ">=":
+            # a >= 1 --> a+1 > 1
+            a0 += "+1"
+        elif parsed[1] == "<=":
+            # a <= 1 --> a < 2
+            a1 += "+1"
+        generated = "WRAP_CMP%d(%d, %s, %s, %s)" % (tl, fnid, " ".join(parsed), a0, a1)
+        return " && ".join(notzero + [generated]), variables, "HANDLE_CONSTR"
+    #print(" ".join(parsed), variables)
+    return " && ".join(notzero + [" ".join(parsed)]), variables, "HANDLE_CONSTR"
+
+def add_to_spec(funcname, ppt, invd):
+    global specs
+    specs[funcname] = specs.get(funcname, {})
+    specs[funcname][ppt] = specs[funcname].get(ppt, {})
+    specs[funcname][ppt]["vars"] = specs[funcname][ppt].get("vars", [])
+    specs[funcname][ppt]["parents"] = specs[funcname][ppt].get("parents", [])
+    specs[funcname][ppt]["constrs"] = specs[funcname][ppt].get("constrs", [])
+    for v in invd["vars"]:
+        if v not in specs[funcname][ppt]["vars"]:
+            p = ""
+            for s in v.split(".")[:-1]:
+                p += s
+                if p not in specs[funcname][ppt]["parents"]:
+                    specs[funcname][ppt]["parents"].append(p)
+                p += "."
+            specs[funcname][ppt]["vars"].append(v)
+    specs[funcname][ppt]["constrs"].append(invd)
+
+def process_invariant(funcname, ppt, inv):
+    global code, fnid, max_id, set_id, blacklist
+    if ppt != "ENTER": return
+    parsed = parse_inv(funcname, ppt, inv)
+    if parsed is None:
+        return
+    constr, variables, macro = parsed
+    bl = []
+    if funcname in blacklist and ppt in blacklist[funcname]:
+        bl = blacklist[funcname][ppt]
+    for v in variables:
+        p = ""
+        for s in v[1].split(".")[:-1]:
+            p += s
+            if p.replace("ORIG:", "") in bl:
+                return
+            p += "."
+    params = []
+    fmtvals = []
+    i = 0
+    for v in variables:
+        params.append("%s v%s" % (v[0], i))
+        fmtvals.append("(long long)(v%d)" % i)
+        i += 1
+    params = ", ".join(params)
+    fmt = "\"(" + ("%lld, " * len(fmtvals))[:-2] + ")\""
+    fmtvals = ", ".join(fmtvals)
+    add_to_spec(funcname, ppt, {"type": len(variables), "rep": constr, "vars": list(map(lambda x: x[1], variables)), "func": "__invscov_constr_%d" % fnid})
+    code += [
+"""
+uint32_t __invscov_constr_%d(%s) {
+  %s(%d, %s, \"%s\", %s, %s);
+}
+""" % (fnid, params, macro, fnid, constr, (funcname + "[" + ppt + "]: " + " ".join(inv)).replace("\\", "\\\\").replace("\"", "\\\""), fmt, fmtvals)]
+    fnid += 1
+
+def process_invscov_out(invscov):
+    invscov = invscov.replace("Exiting Daikon.\n", "")
+    invscov = invscov.split("===========================================================================\n")[1:]
+    for invs in invscov:
+        invs = invs.split("\n")
+        funcname = invs[0].split("():::")[0]
+        ppt = invs[0].split("():::")[1]
+        invs = invs[1:]
+        for inv in invs:
+            i = inv.split()
+            if len(i) == 0: continue
+            process_invariant(funcname, ppt, i)
+
+if os.path.exists(os.path.join(invscov_outpath, "blacklist.json")):
+    with open(os.path.join(invscov_outpath, "blacklist.json")) as f:
+        blacklist = json.load(f)
+
+with open(os.path.join(invscov_outpath, "decls.json")) as f:
+    body = json.load(f)
+    for data in body:
+        var_types[data["name"]] = {}
+        for ppt in data["ppts"]:
+            var_types[data["name"]][ppt] = {}
+            for v in data["ppts"][ppt]:
+                var_types[data["name"]][ppt][v["name"]] = v["type"]
+
+with open(os.path.join(invscov_outpath, "daikon.txt")) as f:
+    process_invscov_out(f.read())
+
+with open(os.path.join(invscov_outpath, "constraints.c"), "w") as f:
+    f.write("#include \"stdint.h\"\n")
+    f.write("#include \"stdio.h\"\n")
+    f.write("#include \"stdlib.h\"\n")
+    f.write("#include \"math.h\"\n")
+    f.write("#include \"assert.h\"\n")
+    if abort_mode:
+        f.write("""
+
+#define HANDLE_CONSTR(id, inv, msg, fmt, ...) do { \\
+ \\
+  if (!(inv)) { \\
+    fprintf(stderr, "VIOLATED INVARIANT: %s -- " fmt "\\n", msg, __VA_ARGS__); \\
+    if (!getenv("INVSCOV_NO_ABORT")) abort(); \\
+  } \\
+ \\
+} while(0)
+
+""")
+    else:
+        f.write("""
+#define MAP_SIZE 65536
+#define INVARIANTS_MAP_SIZE 32768
+
+extern uint8_t __afl_area_initial[MAP_SIZE];
+extern volatile uint8_t * volatile __afl_area_ptr;
+
+// extern __thread uint32_t __afl_state;
+extern __thread uint32_t __afl_prev_loc;
+
+static int print_violations = 0;
+
+#define HANDLE_CONSTR(id, inv, msg, fmt, ...) do { \\
+ \\
+  if (!(inv)) { \\
+    if (print_violations) \\
+      fprintf(stderr, "VIOLATED INVARIANT #%d: %s -- " fmt "\\n", id, msg, __VA_ARGS__); \\
+ \\
+    uint32_t k = (id) & (INVARIANTS_MAP_SIZE -1); \\
+    return k << 1; \\
+ \\
+  } \\
+ \\
+ return 0; \\
+} while(0)
+
+#define HANDLE_CONSTR_ONEOF(id, inv, msg, fmt, ...) do { \\
+ \\
+  uint32_t k = (id) & (INVARIANTS_MAP_SIZE -1); \\
+ \\
+  if (!(inv)) { \\
+    if (print_violations) \\
+      fprintf(stderr, "VIOLATED INVARIANT #%d: %s -- " fmt "\\n", id, msg, __VA_ARGS__); \\
+ \\
+    return k << 1; \\
+ \\
+  } else { \\
+ \\
+    static __thread uint32_t prev = 0; \\
+    k = (k + (v0 ^ prev)) & (MAP_SIZE -1); \\
+    prev = v0 << 1; \\
+    return k; \\
+ \\
+  } \\
+ \\
+ return 0; \\
+} while(0)
+
+#define WRAP_CMP1(id, cmp, a, b) (cmp)
+#define WRAP_CMP2(id, cmp, a, b) (cmp)
+#define WRAP_CMP4(id, cmp, a, b) (cmp)
+#define WRAP_CMP8(id, cmp, a, b) (cmp)
+
+__attribute__((constructor)) static void init() {
+    print_violations = !!getenv("INVSCOV_PRINT");
+}
+
+""")
+    f.write("".join(code) + "\n")
+
+with open(os.path.join(invscov_outpath, "constrs.json"), "w") as f:
+    json.dump(specs, f, indent=2)
+
+os.system("cd '" + invscov_outpath + "' && clang-10 -O1 -g -Wno-pointer-sign -Wno-unused-function -c -fPIC constraints.c")

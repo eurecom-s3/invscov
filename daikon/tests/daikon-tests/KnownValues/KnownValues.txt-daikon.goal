@@ -1,0 +1,59 @@
+===========================================================================
+constantMinMaxDifferent:::EXIT1
+return == 1
+===========================================================================
+constantMinMaxMatch:::EXIT1
+===========================================================================
+constantPairMinMaxMatch:::EXIT1
+===========================================================================
+intOneOfNotSuppressed:::EXIT1
+a one of { 0, 1, 2 }
+===========================================================================
+intOneOfSuppressed:::EXIT1
+===========================================================================
+lowerBoundNotSuppressedStronger:::EXIT1
+a >= 1
+===========================================================================
+lowerBoundNotSuppressedWeaker:::EXIT1
+a >= 1
+===========================================================================
+lowerBoundSuppressed:::EXIT1
+===========================================================================
+sequenceElementOneOfSuppressed:::EXIT1
+size(a[]) == 7
+===========================================================================
+sequenceIntOneOfNotSuppressed:::EXIT1
+a[] == [0, 1, 0, 2]
+a[] elements one of { 0, 1, 2 }
+size(a[]) == 4
+===========================================================================
+sequenceIntOneOfSuppressed:::EXIT1
+a[] == [0, 1, 0]
+size(a[]) == 3
+===========================================================================
+sequenceOneOfSuppressed:::EXIT1
+===========================================================================
+sequenceStringValidValuesNotSuppressed:::EXIT1
+a[] == [true, false, potato]
+a[] elements one of { "false", "potato", "true" }
+size(a[]) == 3
+===========================================================================
+sequenceStringValidValuesSuppressed:::EXIT1
+a[] == [true, false]
+size(a[]) == 2
+===========================================================================
+singletonSequenceOneOfSuppressed:::EXIT1
+a has only one value
+===========================================================================
+stringValidValuesNotSuppressed:::EXIT1
+a one of { "false", "potato", "true" }
+a is printable
+===========================================================================
+stringValidValuesSuppressed:::EXIT1
+a is printable
+===========================================================================
+upperBoundSuppressed:::EXIT1
+===========================================================================
+variableGreaterEqualSuppressed:::EXIT1
+===========================================================================
+variableGreaterSuppressed:::EXIT1

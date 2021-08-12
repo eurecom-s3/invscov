@@ -1,0 +1,26 @@
+: # Use -*- Perl -*- without knowing its path
+  eval 'exec perl -S -wni.bak $0 "$@"'
+  if 0;
+# Michael Ernst <mernst@cs.washington.edu>
+
+# This script removes the last (possibly partial) record from a .dtrace file.
+# More specifically, it removes the last paragraph of a file (everything
+# after the last double-newline).
+
+# The script operates by side effect, changing the files whose names are
+# given on the command line; however, it leaves the original versions in a
+# backup file whose name has suffix ".bak".
+
+
+# The line
+#    $/ = ""
+# for reading by paragraphs does not work for non-native files (e.g., for
+# DOS files when working on Unix or for Unix files when working on DOS).
+# Furthermore, $/ is a string and not a regexp, so there is little hope for
+# fixing this, say by setting it to a regexp like "\015?\012(\015?\012)+".
+# That suggests that this whole script should be abandoned and rewritten.
+BEGIN { $/ = ""; }
+
+if (defined($last))
+  { print $last; }
+$last = $_;

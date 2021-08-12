@@ -1,0 +1,4321 @@
+\input texinfo   @c -*-texinfo-*-
+@c %**start of header
+@setfilename developer.info
+@settitle The Daikon Invariant Detector Developer Manual
+@c %**end of header
+
+@c To update all the nodes and menus all at once:   C-u C-c C-u m
+@c You shouldn't need to do that, though; makeinfo does it for you.
+
+@c Tex magic to reduce the margins for the pdf version;
+@c these values have no effect on the html output.
+@tex
+\global\hsize = 6.5in
+\global\normaloffset = 0in
+@end tex
+
+@macro daikonemail{}
+@email{daikon-developers@@googlegroups.com}
+@end macro
+
+@macro nospellcheck{text}
+\text\
+@end macro
+
+@c set overall document style
+@c @setchapternewpage odd
+@paragraphindent 1
+@firstparagraphindent insert
+@codequotebacktick on
+
+@c Avoid black boxes marking overfull hboxes in TeX output.
+@finalout
+
+@c Start of Document
+
+@titlepage
+@sp 10
+
+@c Could also use @title, @subtitle, @author here.
+@center @titlefont{Daikon Invariant Detector}
+@sp 1
+@center @titlefont{Developer Manual}
+
+@sp 2
+@center Daikon version 5.8.3
+
+@sp 1
+
+@ifset final
+@c FINAL version
+@c Print out the Daikon version 5.8.3 release date
+@center May 4, 2020
+@end ifset
+
+@ifclear final
+@c DRAFT version
+@center DRAFT Version @today{}
+@end ifclear
+
+@sp 5
+@c reads daikon-logo.{eps,pdf} (not .txt, .png, or .jpg, because info
+@c and HTML don't get the title page)
+@image{images/daikon-logo,4in,}
+
+@c The following two commands start the copyright page.
+@page
+@vskip 0pt plus 1filll
+Copyright @copyright{} 1998-2014
+@end titlepage
+
+@c set document heading/footing style
+@c The texinfo support for headings is too broken to use;
+@c perhaps we could fix texinfo.tex some day.
+@c @headings off
+@c @evenheading @thispage @| @thischaptername @| Chapter @thischapternum
+@c @oddheading Section @thissectionnum @| @thissectionname @| @thispage
+@c @oddheading Chapter @thischapternum: @thischaptername @| @| @thispage
+@c @evenheading @thispage @| @| Section @thissectionnum: @thissectionname
+
+@ifclear final
+@c DRAFT version
+@everyfooting DRAFT @| @| @today{}
+@end ifclear
+
+@html
+@image{images/daikon-logo}
+@end html
+
+@c Putting this lower in the HTML version looks a little bit strange,
+@c but it's acceptable.
+@ifnothtml
+@contents
+@end ifnothtml
+
+@ifnottex
+@node  Top
+@top Daikon Invariant Detector Developer Manual
+
+This is the developer manual for the Daikon invariant detector.
+It describes Daikon version 5.8.3, released May 4, 2020.
+
+@menu
+* Introduction::
+* Extending Daikon::
+* Debugging Daikon::
+* Daikon internals::
+* Testing::
+* Editing::
+* Distribution::
+* Historical::
+* File formats::
+* General Index::
+
+@c Putting end menu here is not how it's supposed to be done,
+@c but it seems to fix the html toc indentation bug.
+@end menu
+@end ifnottex
+
+@ifhtml
+@contents
+@end ifhtml
+
+
+@node    Introduction
+@chapter Introduction
+
+This is the developer manual for the
+@ifhtml
+@uref{http://plse.cs.washington.edu/daikon/, ,Daikon invariant detector}.
+@end ifhtml
+@ifnothtml
+Daikon invariant detector.  See: @*
+@ @ @ @ @ @ @uref{http://plse.cs.washington.edu/daikon/}.
+@end ifnothtml
+
+For information about using Daikon, see the
+@uref{http://plse.cs.washington.edu/daikon/download/doc/daikon.html#Introduction,Daikon User Manual}.
+This manual is intended for those who are already familiar with the use
+of Daikon, but wish to customize or extend it.
+
+Additional information can be found in the technical papers available from
+@w{@uref{http://plse.cs.washington.edu/daikon/pubs/}.}
+
+@node    Extending Daikon
+@chapter Extending Daikon
+
+@cindex extending Daikon
+@cindex changing Daikon
+@cindex customizing Daikon
+@cindex modifying Daikon
+
+This chapter describes how to customize or modify Daikon.
+
+@menu
+* Compiling Daikon::
+* Version control repository::
+* Using Eclipse::
+* New invariants::
+* New derived variables::
+* New formatting for invariants::
+* New front ends::
+* New suppressors::
+* Reading dtrace files::
+* System.exit::
+@end menu
+
+@node    Compiling Daikon
+@section Compiling Daikon
+
+@cindex compiling Daikon
+
+To compile Daikon, type @command{make} in @file{$DAIKONDIR/java/} or any of its
+subdirectories.  Alternately, type @command{make -C $DAIKONDIR compile}.
+To create the @file{daikon.jar} file, type @command{make -C $DAIKONDIR daikon.jar}.
+
+The distribution includes @file{daikon.jar} and compiled @file{.class} files,
+so you do not need to compile them yourself unless you make changes.
+
+For more information about compiling Daikon, see the comments in the Makefiles.
+
+@menu
+* Requirements for compiling Daikon::
+@end menu
+
+
+@node    Requirements for compiling Daikon
+@subsection Requirements for compiling Daikon
+
+Before compiling Daikon, you need to install some dependencies (that is,
+software used to build Daikon).  For
+@uref{https://github.com/codespecs/daikon/blob/master/scripts/Dockerfile-centos-jdk11-plus,
+,CentOS},
+@uref{https://github.com/codespecs/daikon/blob/master/scripts/Dockerfile-fedora-jdk11-plus,
+, Fedora}, and
+@uref{https://github.com/codespecs/daikon/blob/master/scripts/Dockerfile-ubuntu-jdk11-plus,
+, Ubuntu}, you can
+find the commands to install these dependencies in file
+@file{$DAIKONDIR/scripts/Dockerfile-@emph{OSNAME}-jdk@emph{N}-plus}.
+For other operating systems, use similar commands.  (If you determine
+commands for some other operating system, please share
+them with the Daikon developers so that we can share them with other users.)
+
+Note that Kvasir, the Daikon front end for the C language
+(@pxref{Kvasir,,,daikon,Daikon User Manual}), does not work on Mac OS.
+
+@cindex .jpp files
+@cindex jpp files
+
+The Daikon build process uses the C preprocessor
+@command{cpp} to convert each @file{.jpp} file in the
+distribution into multiple @file{.java} files, which are then compiled.
+If you have a C compiler, you almost certainly have @command{cpp}.
+
+
+@node    Version control repository
+@section Version control repository
+
+@cindex repository
+@cindex Git repository
+@cindex version control repository
+
+The Daikon git repository is located on GitHub;
+see @uref{https://github.com/@/codespecs/daikon/}.
+
+After making a local clone, @pxref{Compiling Daikon}, for instructions
+on how to compile Daikon.
+
+
+@node    Using Eclipse
+@section Using Eclipse
+
+@cindex Eclipse
+
+[To be improved.]
+
+Here is one way to use Eclipse to edit Daikon.
+
+First, make sure that Daikon builds cleanly from the command line.
+
+File > Import > General > Existing Projects into Workspace
+
+Choose the @file{java} directory of your Daikon checkout
+
+Project > properties > Java build path:
+ libraries : @command{add external jars} everything in the lib/ directory,
+   plus also the @file{tools.jar} file in the @file{lib/} directory of your JDK.
+   (I'm not sure why, but @command{add jars} doesn't show all @file{.jar}
+   files in the directory.)
+
+ Source:
+   add @file{Daikon}, remove @file{Daikon/src}.
+   Default output folder: change from @file{Daikon/bin} to @file{Daikon}.
+
+
+@node    New invariants
+@section New invariants
+
+@cindex new invariants
+@cindex adding new invariants
+
+You can easily write your own invariants and have Daikon check them,
+in addition to all the other invariants that are already part of Daikon.
+Adding a new invariant to Daikon requires writing one Java class, as
+explained below.
+@itemize
+@item
+If you are willing to edit the Daikon source code, you should define the
+invariant in Daikon's source code, in a subdirectory of
+@file{java/daikon/inv/}.  Then, edit method @code{Daikon.setup_proto_invs} to
+call the new invariant's @code{get_proto} method and recompile Daikon.
+@item
+If you do not wish to edit the Daikon source code, then compile the new
+invariant and put its @file{.class} file on your classpath.  Then, invoke
+Daikon with the @option{--user_defined_invariant} command-line argument
+(@pxref{Options to control invariant detection,,,daikon,Daikon User Manual}).
+@end itemize
+
+
+
+The file @file{java/daikon/inv/unary/scalar/Positive.java} in the
+Daikon distribution contains a sample invariant.  This invariant is
+true if the variable is always positive (greater than zero).  This
+invariant is subsumed by other invariants in the system; it is provided
+only as a pedagogical example.  To enable the invariant, comment out the
+appropriate line in @code{Daikon.setup_proto_invs()}, then recompile
+Daikon.
+
+
+A Java class defining an invariant is a concrete subclass of one of the direct subclasses of
+@uref{http://plse.cs.washington.edu/daikon/download/api/daikon/inv/unary/UnaryInvariant.html,@code{UnaryInvariant}},
+@uref{http://plse.cs.washington.edu/daikon/download/api/daikon/inv/binary/BinaryInvariant.html,@code{BinaryInvariant}},
+or
+@uref{http://plse.cs.washington.edu/daikon/download/api/daikon/inv/ternary/TernaryInvariant.html,@code{TernaryInvariant}}.
+A complete list of invariants appears in the body of
+@code{Daikon.setup_proto_invs()}.
+
+Daikon's invariants are first instantiated, then are presented samples
+(tuples of values for all the variables of interest to the invariant;
+this might be a 1-tuple, a 2-tuple, or a 3-tuple) in turn.  If any
+sample falsifies the invariant, the invariant destroys itself.  All
+remaining invariants at the end of the program run can be queried for
+their statistical confidence, then reported as
+likely to be true.
+
+You need to implement the abstract methods of @uref{http://plse.cs.washington.edu/daikon/download/api/daikon/inv/Invariant.html,@code{Invariant}} that are not defined in one of the subclasses listed above.  You also need to define a constructor and a static method:
+
+@table @code
+@item protected @var{InvName}(PptSlice ppt)
+Constructor for class @var{InvName}.  Should only be called from
+@code{instantiate_dyn}.
+Its typical implementation is
+@example
+super(ppt);
+@end example
+
+@item public static @var{InvName} get_proto()
+Returns the prototype invariant used to create other invariants.  Its
+typical implementation is
+@example
+if (proto == null)
+  proto = new InvName(null);
+return (proto);
+@end example
+
+@end table
+
+Methods that need to be overridden that are defined in a subclass of
+@samp{Invariant} include:
+
+@table @code
+@item public InvariantStatus check_modified(..., int count)
+@itemx public InvariantStatus add_modified(..., int count)
+Determines whether the invariant is true for a sample (a tuple of values).
+@end table
+
+
+You will eventually want to override one or more of these methods (@pxref{New formatting for invariants}):
+
+@table @code
+@item public String format()
+@itemx public String repr()
+@itemx public String format_using(OutputFormat format)
+Returns a high-level printed representation of the
+invariant, for user output.
+@end table
+
+
+@node    New derived variables
+@section New derived variables
+
+@cindex derived variable
+@cindex variable, derived
+@cindex adding new derived variables
+@cindex new derived variables
+
+A derived variable is an expression that does not appear in the source
+code as a variable, but that Daikon treats as a variable for purposes
+of invariant detection.  For instance, if there exists an array
+@samp{a} and an integer @samp{i}, then Daikon introduces the derived
+variable @samp{a[i]}.  This permits detection of invariants over this
+quantity.
+
+(Describing how to create new variety of derived variable is still to
+be written.  For now, see the derived variables that appear in the Java
+files in directory @file{$DAIKONDIR/java/daikon/derive/}.)
+
+
+@node    New formatting for invariants
+@section New formatting for invariants
+
+@cindex output format, defining new
+@cindex new output formats
+@cindex adding new output formats
+
+Daikon can print invariants in multiple formats
+(@pxref{Invariant syntax,,,daikon,Daikon User Manual}).
+
+To support a new output format, you need to do two things:
+@itemize @bullet
+@item
+In @code{daikon.inv.Invariant.OutputFormat}, add a new static final
+field and also update the @code{get} method.
+@c (if it returns null, then you
+@c will get an @samp{Unknown output format} error message when you run Daikon.)
+@item
+In every subclass of @code{Invariant}, edit the
+@code{format_using} method to handle the new @code{OutputFormat}.
+@end itemize
+
+@node    New front ends
+@section New front ends
+
+@cindex front end, writing
+
+A front end for Daikon converts data into a form Daikon can process,
+producing files in Daikon's input format --- data trace declarations and
+records.  For more information about these files, see @ref{File formats}.
+
+The data traces can be obtained from any source.  For instance, front
+ends have been built for stock data, weather forecasts, truck weight
+data, and spreadsheet data (@pxref{convertcsv.pl,,,daikon,Daikon User
+Manual}), among others.  More often, users apply a programming language
+front end (also called an @dfn{instrumenter}) to a program, causing
+executions of the program to write files in Daikon's format.  (For
+information about existing front ends, see
+@ref{Front ends (instrumentation),,,daikon,Daikon User Manual}.)
+When a general front end is not
+available, it is possible to manually instrument a specific program so
+that it writes files in Daikon's format.  The resulting instrumented
+program is very similar to what an instrumenter would have created, so
+this section is relevant to both approaches.
+
+Conceptually, instrumentation is very simple.  For each program point
+(say, a line of code or the entry or exit from a procedure) at which you
+wish to detect invariants, the front end must arrange to create a
+declaration (@pxref{Declarations}) that
+lists the variables in scope at that program point, and the front end
+must arrange that execution creates a data trace record (@pxref{Data
+trace records}) for each execution of that
+program point.  Conventionally, the way to create a data trace record is
+to insert a @code{printf} (or similar) statement that outputs the current
+values of the variables of interest.
+
+
+@menu
+* Example instrumented Java program::
+* Instrumenting C programs::
+@end menu
+
+@node       Example instrumented Java program
+@subsection Example instrumented Java program
+
+@cindex instrumenting Java programs
+@cindex Java programs, instrumenting
+
+This section gives an example of how an instrumenter for Java might
+work; other languages are analogous.
+Suppose we wish to instrument file @file{Example.java}.
+@example
+class Example @{
+  // Return either the square of x or the square of (x+1).
+  int squar(int x, boolean b) @{
+    if (b)
+      x++;
+    return x*x;
+  @}
+@}
+@end example
+
+@noindent
+The @file{.decls} file might look like the following.
+@example
+DECLARE
+Example.squar:::ENTER
+x
+int
+int
+1
+b
+boolean
+int
+2
+
+DECLARE
+Example.squar:::EXIT
+x
+int
+int
+1
+b
+boolean
+int
+2
+return
+int
+int
+1
+@end example
+
+@noindent
+The instrumented @file{.java} file might look like the following.
+This example does not compute the ``modified bits'', but simply sets
+them all to 1, which is a safe default.
+@example
+class Example @{
+  static @{
+    daikon.Runtime.setDtraceMaybe("daikon-output/StackAr.dtrace");
+  @}
+
+  // Return either the square of x or the square of (x+1).
+  int squar(int x, boolean b) @{
+    synchronized (daikon.Runtime.dtrace) @{
+      daikon.Runtime.dtrace.println();
+      daikon.Runtime.dtrace.println("Example.squar:::ENTER");
+      daikon.Runtime.dtrace.println("x");
+      daikon.Runtime.dtrace.println(x);
+      daikon.Runtime.dtrace.println(1);  // modified bit
+      daikon.Runtime.dtrace.println("b");
+      daikon.Runtime.dtrace.println(b ? 1 : 0);
+      daikon.Runtime.dtrace.println(1);  // modified bit
+    @}
+
+    if (b)
+      x++;
+
+    int daikon_return_value = x*x;
+    synchronized (daikon.Runtime.dtrace) @{
+      daikon.Runtime.dtrace.println();
+      daikon.Runtime.dtrace.println("Example.squar:::EXIT");
+      daikon.Runtime.dtrace.println("x");
+      daikon.Runtime.dtrace.println(x);
+      daikon.Runtime.dtrace.println(1);  // modified bit
+      daikon.Runtime.dtrace.println("b");
+      daikon.Runtime.dtrace.println(b ? 1 : 0);
+      daikon.Runtime.dtrace.println(1);  // modified bit
+      daikon.Runtime.dtrace.println("return");
+      daikon.Runtime.dtrace.println(daikon_return_value);
+      daikon.Runtime.dtrace.println(1);  // modified bit
+    @}
+
+    return daikon_return_value;
+  @}
+@}
+@end example
+
+@noindent
+(Daikon's Java front end, Chicory, does not actually insert
+instrumentation into the Java source code of your program.  Rather, it
+instruments the bytecode as it is loaded into the JVM.  This is more
+efficient, and it avoids making any changes to your @file{.java} or
+@file{.class} files.  We have shown an example of  Java source code
+instrumentation because that is  simpler to explain and understand than
+the bytecode instrumentation.)
+
+
+@node       Instrumenting C programs
+@subsection Instrumenting C programs
+
+@cindex C programs, instrumenting
+@cindex instrumenting C programs
+
+Daikon comes with a front end for the C language:  Kvasir
+(@pxref{Kvasir,,,daikon,Daikon User Manual}).
+Kvasir only works under the Linux operating system, and it works only on
+``x86'' (Intel 386, 486, 586, 686 compatible) and ``x86-64'' (AMD64, EM64T
+compatible) processors.
+
+You may wish to infer invariants over C programs running on other
+platforms; for instance, you want a robust C front end that works under
+Microsoft Windows.  This section will help you to either write such a
+front end or to hand-instrument your program to produce output that
+Daikon can process.
+
+We welcome additions and corrections to this part of the manual.  And,
+if you write a C instrumenter that might be of use to others, please
+contribute it back to the Daikon project.
+
+
+A front end for C (or any other language) performs two tasks.  It
+determines the names of all variables that are in scope at a particular
+program point, and it prints the values of those variables each time the
+program point executes.
+
+Determining the names of the variables is straightforward.  It requires
+either parsing source code or parsing a compiled executable.  In the
+latter case, the variables can be determined from debugging information
+that the compiler places in the executable.
+
+The challenge for C programs is determining the values of variables at
+execution time:  for each variable, the front end must determine whether
+the variable's value is valid, and how big the value is.
+
+@cindex valid values
+@cindex invalid values
+@cindex nonsensical values
+@cindex uninitialized variables
+@cindex deallocated pointers
+
+A front end should print only variables that have @emph{valid} values.
+Examples of invalid values are variables that have not yet been
+initialized and pointers whose content has been deallocated.  (A pointer
+dereference, such as @samp{*p} or @samp{p->field}, can itself
+be to uninitialized and/or deallocated memory.)  Invalid values should
+be printed as @samp{nonsensical} (@pxref{Data trace records}).
+
+It is desirable to print @samp{nonsensical} rather than an invalid value,
+for two reasons.  First, outputting nonsense values can degrade
+invariant detection; patterns in the valid data may be masked by noise
+from invalid values.  Second, an attempt to access an invalid value can
+cause the instrumented program to crash!  For instance, suppose that
+pointer @samp{p} is not yet initialized --- the pointer value refers to
+some arbitrary location in memory, possibly even an address that the
+operating system has not allocated to the program.  An attempt to print
+the value of @samp{*p} or @samp{p->field} will result in a segmentation
+fault when @samp{*p} is accessed.  (If you choose never to dereference a
+pointer while performing instrumentation, then you do not need to worry
+about invalid references.  However, you will be unable to output any
+fields of a pointer to a struct or class, making your front end less
+useful.  You will still be able to output fields of a regular variable
+to a struct or class, but most interesting uses of structs and classes
+in C and C++ are through pointers.)
+
+C relies on the programmer to remember which variables are valid, and
+the programmer must take care never to access invalid variables.
+Unfortunately, there is no simple automatic way to determine variable
+validity for an arbitrary C program.  (Languages with automatic memory
+management, such as Java, do not pose these problems.  All variables
+always have an initial value, so there is no danger of printing
+uninitialized memory, though the initial value may not be particularly
+meaningful.  Because pointed-to memory is never deallocated, all
+non-null pointers are always valid, so there is no danger of a
+segmentation fault.)
+
+An instrumenter needs information about validity of variable values.
+This could be obtained from the programmer (which requires work on the
+part of the user of Daikon), or obtained automatically by creating a new
+run-time system that tracks the information (which requires a more
+sophisticated front end).
+
+In addition to determining which variables are uninitialized and which
+pointers are to allocated memory, there are additional problems for a C
+front end.  For example, given a char pointer @samp{*c}, does it point
+to a single character, or to an array of characters?  If it points to an
+array of characters, how big is that array?  And for each element of the
+array, is that element initialized or not?
+
+
+The problem of tracking C memory may seem daunting, but it is not
+insurmountable.  There exist many tools for detecting or debugging
+memory errors in C, and they need to perform exactly the same memory
+tracking as a Daikon front end must perform.  Therefore, a Daikon front
+end can use the same well-known techniques, and possibly can even be
+built on top of such a tool.  For instance, one C front end, named Kvasir, is
+built on top of the Valgrind tool (@uref{http://valgrind.org/}),
+greatly reducing the implementation effort.  Valgrind only works under
+Linux, but a C front end for another platform could build on a similar
+tool; many other such tools exist.
+
+
+There are two basic approaches to instrumenting a C program (or a
+program in any other language):  instrument the source code, or
+instrument a compiled binary representation of the program.  In each
+case, additional code that tracks all memory allocations, deallocations,
+writes, and reads must be executed at run time.  Which approach is most
+appropriate for you depends on what tools you use when building your C
+instrumentation system.
+
+
+In some cases, it may not be necessary to build a fully general C
+instrumentation system.  You may be able to craft a smaller, simpler
+extension to an existing program --- enabling that program (only) to
+produce files for Daikon to analyze.
+
+For instance, many programs use specialized memory allocation routines
+(customized versions of @code{malloc} and @code{free}), in order to
+prevent or detect memory errors.  The information that such libraries
+collect is often sufficient to determine which variable values should be
+printed, and which should be suppressed in favor of printing
+@samp{nonsensical} instead.
+
+
+The presence of memory errors --- even in a program that @emph{appears}
+to run correctly --- makes it much harder to create Daikon's output.
+Therefore, as a prerequisite to instrumenting a C program, it is usually
+a good idea to run a memory checker on that program and to eliminate any
+memory errors.
+
+@c If you don't have a memory checking tool, then what platform are you
+@c on??  But you could use some Very simple half-measures such s zeroing
+@c out memory when it is allocated (always use @code{calloc}, never
+@c @code{malloc}) and when it is deallocated, and zeroing out pointers
+@c when they are freed.
+
+@c An example of compiler (not runtime) infrastructure for Microsoft
+@c Windows is Phoenix:
+@c http://research.microsoft.com/phoenix/
+
+
+
+
+@node    New suppressors
+@section New suppressors
+
+@cindex adding new suppressors
+@cindex new suppressors
+@cindex suppressors, adding new
+
+As mentioned in @ref{Daikon internals}, one way to make Daikon more
+efficient, and to reduce clutter in the output to the user, is to reduce the
+number of redundant invariants of various kinds.  This section describes
+how to add a new suppressor relation, such that if invariant A implies
+B, B is not instantiated or checked as long as A holds, saving time and
+space.  Suppression implications use some terminology.  A
+@dfn{suppressor} (defined in the class @code{NISuppressor}) is one of a
+set of invariants (@code{NISuppression}) that imply and suppress a
+@dfn{suppressee} invariant (@code{NISuppressee}).  The set of all of
+the suppressions that suppress a particular @var{suppressee} is stored in the
+class @code{NISuppressionSet}.
+
+Adding a new suppression is straightforward when the invariants involved
+do not have any state.  Define the @var{suppressee} and
+each of the suppressions that suppress it using the corresponding
+constructors.  Add the method @code{get_ni_suppressions} to the class
+of the invariant being suppressed and return the appropriate
+suppression set.  Make sure that @code{get_ni_suppressions} always
+returns the same suppression set (i.e., that storage to store
+the suppressions is only allocated once).  Normally this is
+done by defining a static variable to hold the suppression sets
+and initializing this variable the first time that @code{get_ni_suppressions}
+is called.
+
+The following example defines suppressions for @samp{x == y} implies
+@samp{x >= y} and @samp{x > y} implies @samp{x >= y}.
+
+@exampleindent 1
+@example
+private static NISuppressionSet suppressions = null;
+
+public NISuppressionSet get_ni_suppressions() @{
+  if (suppressions == null) @{
+    NISuppressee = new NISuppressee(IntGreaterEqual);
+
+    NISuppressor v1_eq_v2 = new NISuppressor(0, 1, IntEqual.class);
+    NISuppressor v1_lt_v2 = new NISuppressor(0, 1, IntLessThan.class);
+
+    suppressions = new NISuppressionSet(new NISuppression[] @{
+      new NISuppression(v1_eq_v2, suppressee),
+      new NISuppression(v1_lt_v2, suppressee),
+    @});
+  @}
+  return suppressions;
+@}
+@end example
+@c restore default:
+@exampleindent 5
+
+For suppressions depending on the state of a particular invariant,
+each @code{Invariant} has an @code{isObviousDynamically(VarInfo[] vis)}
+method that is called once the state of other invariants has already
+been determined.  This method returns a non-null value if this invariant
+is implied by a fact that can be derived from the given @code{VarInfo}s.
+
+For example, suppose division was not defined for divisors smaller than 1.
+The following example defines an obvious check for @samp{x <= c}
+(where c < 1 is a constant) implies @samp{y % x == 0}, written in the
+Divides class.
+
+@exampleindent 1
+@example
+public DiscardInfo isObviousDynamically(VarInfo[] vis) @{
+  DiscardInfo di = super.isObviousDynamically(vis);
+  if(di != null) @{
+    return di;
+  @}
+
+  VarInfo var1 = vis[0];
+
+  PptSlice1 ppt_over1 = ppt.parent.findSlice(var1);
+
+  if(ppt_over1 == null) @{
+    return null;
+  @}
+
+  for(Invariant inv : ppt_over1.invs) @{
+    if(inv instanceof UpperBound) @{
+      if(((UpperBound) inv).max() < 1) @{
+        return new DiscardInfo(this, DiscardCode.obvious,
+                       @samp{Divides is obvious when divisor less than one});
+      @}
+    @}
+  @}
+
+  return null;
+@}
+@end example
+@c restore default:
+@exampleindent 5
+
+
+@node    Reading dtrace files
+@section Reading dtrace files
+
+If you wish to write a program that manipulates a @file{.dtrace} file, you
+can use Daikon's built-in mechanisms for parsing @file{.dtrace} files.
+(This is easier and less error-prone than writing your own parser.)
+
+You will write a subclass of @code{FileIO.Processor}, then pass an instance
+of that class to @code{FileIO.read_data_trace_files}.  Daikon will parse
+each record in the trace files that you indicate, then will pass the parsed
+version to methods in your processor.
+
+For a simple example of how to use @code{FileIO.Processor}, see the file
+@*
+@file{daikon/java/daikon/tools/ReadTrace.java}.
+
+
+@node    System.exit
+@section System.exit
+
+The Daikon codebase does not call @code{System.exit()}, except in a
+dummy main method that catches @code{TerminationMessage}, which is the
+standard way that a component of Daikon requests the JVM to shut down.
+
+The reason for this is that calling @code{System.exit()} is usually a
+bad idea.  It makes the class unusable as a subroutine, because it
+might kill the calling program.  It can cause deadlock.  And it can
+leave data in an inconsistent state (for example, if the program was in
+the middle of writing a file, still held non-Java locks, etc.), because
+the program has no good way of completing any actions that it was in the
+middle of.  Therefore, it is better to throw an exception and let the
+program handle it appropriately.  (This is true of instrumentation code
+as well.)
+
+To see the stack trace for a @code{TerminationMessage}, pass
+@option{--config_option daikon.Debug.show_stack_trace=true} on the command
+line.
+
+
+@node    Debugging Daikon
+@chapter Debugging Daikon
+
+@cindex debugging Daikon
+
+@menu
+* Track logging::
+@end menu
+
+@ref{Daikon debugging options,,,daikon,Daikon User Manual} describes
+several command-line options that enable logging, which can be a useful
+alternative to using a debugger when debugging Daikon.  Because Daikon
+processes large amounts of data, using a debugger can be difficult.
+
+This chapter describes some of the command-line options in more detail.
+
+
+@node    Track logging
+@section Track logging
+
+@cindex logging
+@cindex track logging
+
+Often it is desirable to print information only about one or more specific
+invariants.  This is distinct from general logging because it concentrates
+on specific invariant objects rather than a particular class or portion of Daikon.
+This is referred to as @dfn{Track} logging because it tracks particular
+values across Daikon.
+
+@c makeinfo doesn't like ',' in @var so we can't do this:
+@c @var{class|class|...<var,var,var>@@ppt}
+The @option{--track @var{class|class|...<var}@i{,}@var{var}@i{,}@var{var>@@ppt}}
+option to Daikon
+(@pxref{Daikon debugging options,,,daikon,Daikon User Manual})
+enables track logging.
+The argument to the @option{--track} option supplies three pieces of information:
+
+@enumerate
+
+@item The class name of the invariant (e.g., @code{IntEqual}).
+Multiple class arguments can be specified separated by pipe symbols
+(@samp{|}).
+
+@item The variables that are used in the invariant (e.g., @code{return},
+@code{size(this.s[])}).  The variables are specified in angle brackets
+(@samp{<>}).
+
+@item The program point of interest (e.g.,
+@code{DataStructures.StackAr.findMin()V:::ENTER}).
+The program point is preceded by an at sign (@samp{@@}).
+
+@end enumerate
+
+Each item is optional.
+For example:
+@example
+IntEqual<x,y>@@makeEmpty()
+LessThan|GreaterThan<return,orig(y)>@@EXIT99
+@end example
+
+Multiple @option{--track} switches can be specified. The class, program point,
+and each of the variables must match one of the specifications in order
+for information concerning the invariant to be printed.
+
+Matching is a simple substring comparison.  The specified item must be
+a substring of the actual item.  For instance, @code{LessThan} matches
+both @code{IntLessThan} and @code{FloatLessThan}.
+
+Program points and variables are specified exactly as they are seen in
+normal Daikon invariant output.  Specifically, @code{Ppt.name} and
+@code{VarInfo.name.name()} are used to generate the names for comparisons.
+
+Invariants are not the only classes that can be tracked.  Any class name
+is a valid entry.  Thus, for example, to print information about derived
+sequence variables from sequence @code{this.theArray[]} and scalar
+@code{x} at program point @code{DisjSets.find(int):::EXIT}, the tracking
+argument would be:
+
+@exampleindent 1
+@smallexample
+SequenceScalarSubscriptFactory<x,this.theArray[]>@@DisjSets.find(int):::EXIT
+@end smallexample
+@c restore default:
+@exampleindent 5
+
+There are two configuration options that can customize the output.  The
+option @option{daikon.Debug.showTraceback} will output a stack trace on
+each log statement.  The option @option{daikon.Debug.logDetail} will cause
+more detailed (and often voluminous) output to be printed.  For more
+information, @pxref{Configuration options,,,daikon,Daikon User Manual}.
+
+Note that all interesting information is not necessarily logged.
+It will often be necessary to add new logging statements for the specific
+information of interest (@pxref{Adding track logging}).
+This is covered in the next section.
+
+More detailed information can be found in the Javadoc for
+@ifhtml
+@code{@uref{http://plse.cs.washington.edu/daikon/download/api/daikon/Debug.html,,daikon.Debug}}
+@end ifhtml
+@ifnothtml
+@code{@uref{http://plse.cs.washington.edu/daikon/download/api/daikon/Debug.html, daikon.Debug}}
+@end ifnothtml
+and
+@uref{http://plse.cs.washington.edu/daikon/download/api/daikon/inv/Invariant.html,@code{daikon.inv.Invariant}}.
+
+@menu
+* Adding track logging::
+* Track log output::
+@end menu
+
+@node       Adding track logging
+@subsection Adding track logging
+
+@cindex adding track logging
+
+When you add a new invariant, derived variable, or other component to
+Daikon, you should ensure that it supports track logging in the same way
+that existing components do.  This section describes how to do so.
+
+Track logging is based
+around the class name, program point name, and variables of interest.
+Track logging methods accept these parameters and a string to be printed.
+@file{Debug.java} implements the following basic log methods:
+
+@example
+log (String)
+log (Class, Ppt, String)
+log (Class, Ppt, VarInfo[], String)
+@end example
+
+@noindent
+The first uses the cached version of the @code{Class}, @code{Ppt},
+and @code{VarInfo} that
+was provided in the constructor.  The second uses the specified
+variables and the @code{VarInfo} information from @code{Ppt}.
+The third specifies each variable explicitly.
+
+When logging is not enabled, calling the logging functions can take a
+significant amount of time (because the parameters need to be evaluated and
+passed).  To minimize this, a function @code{logOn()} is provided to see
+if logging is enabled.  It is recommended that code of the following form
+be used for efficiency:
+
+@example
+if (Debug.logOn()) @{
+  Debug.log (getClass(), ppt, "Entering routine foo");
+@}
+@end example
+
+Track logging also can work with other loggers.  Each of the logging
+methods has an alternative version that also accepts a logger as the
+first argument.  In this case, normal track logging is performed if
+the class, @code{ppt}, and vars match.  If they don't match, the same
+information is logged via the specified logger.  For example:
+
+@example
+if (Debug.logOn || logger.isLoggable (Level.FINE)) @{
+  Debug.log (logger, getClass(), ppt, "Entering routine foo");
+@}
+@end example
+
+@noindent
+The above will print if either the tracking information matches or if the
+specified logger is enabled.
+
+Convenience methods are available for track logging invariants.  In this
+case the class name, @code{ppt}, and variable information are all taken from the
+invariant.  The available methods are:
+
+@example
+logOn()
+logDetail()
+log (String)
+log (Logger, String)
+@end example
+
+@noindent
+These correspond to the @code{Debug} methods described above.  They are
+the recommended way to log information concerning invariants.
+
+Track logging also provides one additional level of detail.  The function
+@code{logDetail()} returns whether or not more detailed information
+should be printed.  This should be used for information which is not
+normally interesting or especially voluminous output.  Often statements
+using @code{logDetail()} should be commented out when not in active use.
+
+
+@node       Track log output
+@subsection Track log output
+
+@cindex track log output
+
+Each call to a track log method will produce output in the same basic
+format. Space for three variables is always maintained for consistency:
+
+@example
+@ daikon.Debug: <class>: <ppt>: <var1>: <var2>: <var3>: <msg>
+@end example
+
+@noindent
+If @code{showTrackback} is enabled, the @samp{traceback} will follow each
+line of debug output.
+
+
+@node    Daikon internals
+@chapter Daikon internals
+
+@cindex Daikon internals
+@cindex efficiency issues
+@cindex optimizations
+
+@menu
+* Avoiding work for redundant invariants::
+* Dataflow hierarchy::
+* Equality optimization::
+@end menu
+
+This chapter describes some of the techniques used in Daikon to make
+it efficient in terms of time and space needed.  These techniques can
+be enabled or disabled at the Daikon command line, as described in
+@ref{Running Daikon,,Running Daikon,daikon,Daikon User Manual}.
+
+@node    Avoiding work for redundant invariants
+@section Avoiding work for redundant invariants
+
+@cindex non-instantiation of invariants
+@cindex non-checking of invariants
+@cindex non-printing of invariants
+
+Daikon reduces runtime and memory by avoiding performing work for
+redundant invariants that provide no useful information to the user.
+There are three basic types of optimization that can be performed for
+uninteresting invariants:  non-instantiation, suppression, and
+non-printing.
+
+@dfn{Non-instantiation} prevents the creation of an invariant because
+the invariant's truth value is statically obvious (from the semantics
+of the programming language), no matter what values may be seen at run
+time.  Two examples are @samp{A[i] is an element of A[]} and @samp{size(A[])
+>= 0}.  Non-instantiation is implemented by the by the
+@code{isObviousStatically} method.
+With the equality sets optimization (@pxref{Equality optimization}),
+non-instantiation can only happen if all equality permutations are
+statically obvious.  Note that @code{isObviousStatically} should
+be used only for invariants that are known to be true.  Other code
+presumes that any statically obvious invariants are true and can
+be safely presumed when determining if other invariants are redundant.
+
+An invariant can be @emph{suppressed} if it is logically implied by some
+set of other invariants (referred to as @dfn{suppressors}).  A suppressed
+invariant is not instantiated or checked as long as its suppressors
+hold.  For example @samp{x > y} implies @samp{x >= y}.  Suppression has some
+limitations.  It cannot use as suppressors or suppress sample dependent
+invariants (invariants that adapt themselves to the samples they see and
+whose equation thus involves a constant such as @samp{x > 42}).
+Suppression also cannot use relationships between variables.  For
+example, it cannot suppress @samp{x[i] = y[j]} by @samp{(x[] = y[]) ^ (i =
+j)}.  Suppressor invariants can only use variables that are also in the
+invariant that is being suppressed.  In this example, only invariants
+using the variables @samp{x[i]} and @samp{y[i]} can be used as a suppressors.
+See @ref{New suppressors} for more information.
+
+@dfn{Non-printing} is a post-pass that throws out any invariants that
+are implied by other true invariants.  It is similar to suppression, but
+has none of the limitations of suppression.  But since it is only run as
+a post pass, it cannot optimize runtime and memory use as suppression can.
+Non-printing should be used only in cases where suppression cannot.
+Non-printing is implemented by @code{ObviousFilter}, which calls the
+@code{isObviousDynamically} method on invariants.  The
+@code{isObviousStatically} method is also used by the non-printing
+checks; it can be called at the end without reference to equality sets.
+
+More detail can be found in the paper ``Efficient incremental algorithms
+for dynamic detection of likely invariants'' by Jeff H. Perkins and
+Michael D. Ernst, published in Foundations of Software Engineering in 2004;
+the paper is available from
+@uref{http://plse.cs.washington.edu/daikon/pubs/invariants-incremental-fse2004-abstract.html}.
+
+@need 2000
+@node    Dataflow hierarchy
+@section Dataflow hierarchy
+
+@cindex dataflow hierarchy
+@cindex hierarchy
+
+The dataflow hierarchy expresses relationships between variables at
+different program points.  It is used to save time and space during invariant
+generation and to prevent invariants from being printed multiple times.
+
+Suppose there are two program points X and its parent Y.  Then every sample
+seen at X is also seen at Y, and every invariant that is true at Y is also
+true at X.
+
+Variable @emph{z} in program point X is
+related to variable @emph{z@quoteright{}} in another program point Y by a @dfn{flow} relation
+if every sample seen of @emph{z} at X is also seen of @emph{z@quoteright{}} at Y.
+Y is called a parent program point of X.
+
+For example, all the field
+variables in the @code{:::ENTER} program point of a method in class C relate to
+the field variables in the @code{:::CLASS} program point of C.  This is because
+the state of C, when in context at the entry @code{:::ENTER} program point, is
+also in context at the @code{:::CLASS} program point.  Any invariant that holds
+true on a parent program point must hold on the child program point.
+Daikon saves time and space by only computing invariants at the highest parent
+at which they apply.
+
+@c original:
+@c Daikon provides four ways that program points can be connected.
+@c First, @code{:::CLASS} program points are parents of
+@c all their method program points.  Second, between two classes that are
+@c related by inheritance, corresponding program points relate --- for
+@c example, @code{java.util.Vector:::CLASS} is a child of
+@c @code{java.util.List:::CLASS}.  Third, when a program point contains
+@c variables of a type whose @code{:::CLASS} program point is also available to
+@c Daikon, the former program point's variables relate to the latter
+@c program point's @code{:::CLASS} method.  For example, if X.y is of type Y, and
+@c Y contains fields a and b, X.y, X.y.a and X.y.b relate to
+@c Y.this, Y.b and Y.a.  Fourth, variables at @code{:::ENTER} program
+@c points are related to the @samp{orig} versions at @code{:::EXIT} program points.
+
+@ref{Program point declarations} describe how program points are
+declared in a Daikon input file. Here we will describe how the
+@code{parent} records are typically used to connect program points into
+a dataflow hierarchy.
+
+Daikon uses three primary relationship types
+(@code{PARENT}, @code{ENTER-EXIT} and @code{EXIT-EXITNN}) to connect the program points
+into an acyclic dataflow hierarchy.
+
+@itemize
+@item
+A program point that represents the @code{ENTRY} or @code{EXIT} of a
+static method will have a @code{parent} record that points to the
+@code{CLASS} program point for the containing class.
+
+@item
+A program point that represents the @code{ENTRY} or @code{EXIT} of a
+non-static (instance) method will have a @code{parent} record that points to the
+@code{OBJECT} program point for the containing object.
+
+@item
+An @code{ENTER-EXIT} edge connects each method's @code{ENTER} program
+point with its corresponding @code{EXCEPTION} and @code{EXIT} program points.
+
+@item
+An @code{EXIT-EXITNN} edge connects each method's @code{EXIT} program
+point with each of its corresponding @code{EXIT<id>} program points.
+
+A program point that represents a @code{CLASS}
+will usually not have a @code{parent} record.
+
+@item
+A program point that represents a @code{OBJECT}
+will have a @code{parent} record that points to the @code{CLASS}
+program point for the object if the object has static data members.
+@end itemize
+
+When using Daikon, the relations used to describe the dataflow
+hierarchy may result in some true invariants that are not reported at
+some program points.  However, the invariant will be present in some
+parent program point.  The dataflow hierarchy is used by default, but
+can be disabled by the @option{--nohierarchy} flag.  When dataflow is enabled,
+the only samples that are examined by Daikon are the @code{:::EXIT} program
+points (plus @samp{orig} variables) since these contain a complete view of
+the data, from which invariants at all other locations can be inferred.
+For example, Daikon does not need to examine data at @code{:::ENTER} or
+@code{:::OBJECT} program points which are parents of @code{:::EXIT} in the
+dataflow hierarchy.
+
+
+@node    Equality optimization
+@section Equality optimization
+
+@cindex equality optimization
+
+When N variables are equal within a program point there will be
+N(N-1)/2 pairwise invariants to represent the equality within the
+equal variables, and N copies of every other invariant.  For example,
+if a, b, and c are equal, then @samp{a == b}, @samp{a == c}, @samp{b == c} will be
+reported as pairwise invariants, and @samp{odd(a)}, @samp{odd(b)} and @samp{odd(c)}
+will be reported.  If the variables will always be equal, then
+reporting N times the invariants is wasteful.  Daikon thus treats
+equality specially.
+
+Each group of variables that are equal from the start of inferencing
+are placed in @dfn{equality sets}.  An equality set can hold an
+arbitrary number of variables, and replaces the O(N^2) pairwise
+equality invariants.  Every equality set has a leader or
+@dfn{canonical} representation by a variable in the set.
+Non-equality invariants are only instantiated and checked on the
+leader.  When printing invariants, Daikon reports only invariants on
+the leader.  The user can easily determine that @samp{odd(a)} and @samp{a == b}
+imply @samp{odd(b)}.  Equality optimization can be turned off at the
+command line with the @option{--noequality} flag.
+
+
+@node    Testing
+@chapter Testing
+
+@cindex testing Daikon
+
+Daikon has two sets of tests: unit tests (@pxref{Unit testing}) and
+regression tests (@pxref{Regression tests}).  If there
+are any differences between the expected results and the ones you get,
+don't check in your changes until you understand which is the desired
+behavior and possibly update the goals.
+
+The Daikon distribution contains unit tests, but not regression tests
+(which would make the distribution much larger).  The regression tests
+appear in Daikon's version control repository (@pxref{Version control
+repository}), within the @file{tests} subdirectory.
+
+@menu
+* Unit testing::
+* Regression tests::
+@end menu
+
+@node    Unit testing
+@section Unit testing
+
+@cindex unit testing
+@cindex new unit tests
+@cindex adding new unit tests
+
+The unit tests are found in @file{daikon/java/daikon/test/}; they use
+the @samp{JUnit} unit testing framework.  They take a few seconds to run.  They
+are automatically run each time you compile Daikon (by running
+@command{make} in @file{$DAIKONDIR/java} or any of its subdirectories).  You can
+also run them explicitly via @command{make unit}.  When you write new code
+or modify old code, please try to add unit tests.
+
+@menu
+* Invariant format testing::
+* Sample Testing::
+@end menu
+
+@node       Invariant format testing
+@subsection Invariant format testing
+
+This tests the formatting of invariants with specified input.  The
+tests are configured in the file @file{InvariantFormatTest.commands} under
+@file{daikon/test/}.  The @file{InvariantFormatTest.commands} file must be
+in the classpath when this tester is run.
+
+The file is formatted as follows:
+@example
+<fully qualified class name> [<instantiate args>]
+<type string>
+<goal string>+ <- 1 or more goal strings
+<sample>* <- 0 or more samples
+@end example
+
+The file format should be the same regardless of blank or commented
+lines except in the samples area. No blank lines or comments should
+appear after the goal string before the first sample or between parts
+of samples (these lines are used to determine where sample
+lists end). This will be remedied in a future version of the tester.
+
+@table @code
+@item Instantiate args
+These are optional additional arguments to the static
+instantiate method of the class.  Each argument consists of the type (boolean
+or int) followed by the value.  For example:
+@exampleindent 1
+@example
+boolean true
+int 37 boolean false
+@end example
+@c restore default:
+@exampleindent 5
+
+@item Type string:
+A type string must consist of one or more of the following literals:
+@samp{int}, @samp{double}, @samp{string}, @samp{int_array},
+@samp{double_array}, or @samp{string_array}, separated by spaces.
+This string represents the
+types that an invariant is supposed to compare For instance, a binary
+integer comparison would have type string @samp{int int}.  A pairwise
+sequence comparison would have type string @samp{int_array int_array}.
+
+@item Goal string:
+The goal string must start with the prefix @samp{Goal }, and then
+continue with @samp{(<format type>): },
+where format type is the format in which the invariant will
+print. After this the representation of the invariant must occur. It
+must represent the invariant result exactly as printed, even white
+space is significant (as proper formatting should be correct down to
+the whitespace). The first variable (the one corresponding to the
+first type in the type string) corresponds with @samp{a}, the second with
+@samp{b} and so on. Format the type string accordingly. (In samples, the
+value of @samp{a} is read first, possibly followed by @samp{b}, and then
+possibly @samp{c}, depending on the arity of the invariant.)
+
+@exampleindent 1
+@example
+Example:
+Type string, Goals
+ |             |
+\|/            |
+int           \|/
+Goal (daikon): a >= -6
+Goal (java): a >= -6
+Goal (esc): a >= -6
+Goal (ioa): a >= -6
+Goal (jml): a >= -6
+Goal (simplify): (>= |a| -6)
+@end example
+@c restore default:
+@exampleindent 5
+
+@noindent
+Note that the spacing on the goal lines is exact, that is, no extra
+spaces are allowed and no spaces are allowed to be missing. So the
+exact format is again:
+@example
+Goal<1 space>(<format name>):<1 space><goal text>
+@end example
+
+@item Samples:
+Values formatted according to the type string, one value per
+line Make sure that the samples provided are actually instances of that
+particular invariant (That is, if the desired invariant is @samp{a < b}, then
+the first number of each sample better be less than the second)
+
+@c The below is not necessary since we don't check this before formatting
+@c
+@c Also be
+@c sure to have enough samples to ensure the invariant is apparent (and
+@c probable) to Daikon (6-8 will do for most binary integer comparisons,
+@c 1-3 for array-based comparisons) Example: Formatting for
+@c samples of a binary integer comparison
+
+Arrays and strings must be formatted according to the Daikon @file{.dtrace} file
+convention (for a full description, @pxref{File formats}).  This
+states that arrays must be surrounded in brackets (start with @samp{[}, end
+with @samp{]}), and entries must be separated by a space.  Strings must be
+enclosed in quotes (@samp{"}). Quotes within a string can be represented by the
+sequence @samp{\"}.
+
+For example:
+@exampleindent 1
+@example
+[1 2 3 4 5] - an array with the elements 1, 2, 3, 4, 5
+"aString" - a string
+"a string" - also legal as a string
+"\"" - the string with the value "
+["a" "b" "c"] - an array of strings
+
+int int        <- type string
+Goal: a < b    <- goal string, no comment/blank lines after this
+1              <- or before this
+2
+2              <-|__ Pair of values (a = 2 , b = 3)
+3              <-|
+@end example
+@c restore default:
+@exampleindent 5
+
+@noindent
+Other examples are in the existing test file
+(@file{InvariantFormatTest.commands}).
+@end table
+
+The output of a test run can be converted into goals by using the
+@option{--generate_goals} switch to the tester as follows:
+@example
+java daikon.test.InvariantFormatTester --generate_goals
+@end example
+
+@noindent
+Note that this test is included in the set of tests performed by the
+master tester, and so it is not necessary to separately run this test
+except to generate goal files.
+
+Furthermore, this framework cannot parse complex types from files
+unless they contain a @code{public Object valueOf(String s)}
+function. Otherwise the program has no was of knowing how to create
+such an object from a string. All primitives and the String type are
+already recognized.
+
+@node       Sample Testing
+@subsection Sample Testing
+
+Sample testing tests various components of Daikon as samples are being
+processed.  A file (normally @file{daikon/test/SampleTester.commands})
+specifies a @file{.decls} file to use, the samples for each @samp{ppt/var},
+and assertions
+about Daikon's state (such as whether or not a particular invariant exists).
+
+Each line of the file specifies exactly one command.  Blank lines and
+leading blanks are ignored.  Comments begin with the number sign (@samp{#}) and
+extend to the end of the line.  The type of command is specified as the
+first token on the line followed by a colon.  The supported commands
+are:
+
+@deffn {SampleTester Command} decl: decl-file
+This command specifies the declaration file to use.  This is a normal
+@file{.decls} file that should follow the format defined in the user manual.
+@end deffn
+
+@deffn {SampleTester Command} ppt: ppt
+This command specifies the program point that will be used with following
+vars, data, and assert commands.  The program point should be specified
+exactly as it appears in the @file{.decls} file.
+@end deffn
+
+@deffn {SampleTester Command} vars: var1 var2...
+Specifies the variables that will be used on following data lines.
+Each variable must match exactly a variable in the @code{ppt}.  Other
+variables will be treated as missing.
+@end deffn
+
+@deffn {SampleTester Command} data: val1 val2...
+Specifies the values for each of the previously specified variables.  The
+values must match the type of the variables.  A single dash (-) indicates
+that a variable is missing.
+@end deffn
+
+@deffn {SampleTester Command} assert: assertion
+Specifies an assertion that should be true at this point (@pxref{Assertions}).
+The negation of an assertion can be specified by adding an exclamation
+point before the assertion (for example: @code{!inv("x > y", x, y})).
+@end deffn
+
+@menu
+* Assertions::
+* Example file::
+@end menu
+
+@node          Assertions
+@subsubsection Assertions
+
+Assertions are formatted like function calls: @code{<name>(arg1, arg2, ...)}.
+The valid assertions for the assert: command are:
+
+@deffn Assertion inv format var1 ...
+
+The @code{inv} assertion asserts that the specified invariant exists in the
+current @code{ppt}.  The @var{format} argument is the result of calling
+@code{format()} on
+the invariant.  This is how the invariant is recognized.  The remaining
+arguments are the variables that make up the invariants slice.  These
+must match exactly variables in the @code{ppt}.  The @code{inv} assertion
+returns true if and only if the slice exists and an invariant is found
+within that slice that
+matches @var{format}.
+
+Optionally, @var{format} can be replaced by the fully qualified class name of
+the invariant.  In this case, it is only necessary for the class to match.
+@end deffn
+
+More assertions can easily be added to @file{SampleTester.java} as required.
+
+@node          Example file
+@subsubsection Example file
+
+The following is an simple example of sample testing.
+@example
+decl: daikon/test/SampleTesters.decls
+
+ppt: foo.f():::EXIT35
+  vars: x y z
+  data: 1 1 0
+  data: 2 1 0
+  assert: inv("x >= y", x, y)
+  assert: inv(daikon.inv.binary.twoScalar.IntGreaterEqual,x,y)
+  assert: !inv("x <= y", x, y)
+@end example
+
+@node    Regression tests
+@section Regression tests
+
+@cindex regression tests
+
+The regression tests run Daikon on many different inputs and compare
+Daikon's output to expected output.  They take about an hour to run.
+
+The regression tests appear in the @file{$DAIKONDIR/tests/} directory.  Type
+@command{make} in that directory to see a list of Makefile targets.  The
+most common target is @command{make diffs}; if any output file has
+non-zero size, the tests fail.  You do not generally need to do
+@command{make clean}, which forces re-instrumentation (a possibly slow
+process) the next time you run the tests.
+
+As when you install or compile Daikon, when you run the tests
+environment variable @env{DAIKONDIR}
+should be set.
+
+You should generally run the regression tests before checking it a
+change (especially any non-trivial change).  If any of the regression
+test diffs has a non-zero size, then your edits have changed Daikon's
+output and you should not check in without carefully determining that
+the changes are intentional and desirable (in which case you should update the
+goal output files, so that the diffs are again zero).
+
+There are several subdirectories under @file{$DAIKONDIR/tests/}, testing
+different components of the Daikon distribution (such as Kvasir,
+@pxref{Kvasir,,,daikon,Daikon User Manual}).  Tests of the
+invariant detection engine itself appear in
+@file{$DAIKONDIR/tests/daikon-tests/}.
+
+Each Makefile under @file{$DAIKONDIR/tests} includes
+@file{$DAIKONDIR/tests/Makefile.common}, which contains the logic for all of
+the tests.  @file{Makefile.common} is somewhat complicated, if only
+because it controls so many types of tests.
+
+
+@menu
+* Kvasir regression tests::
+* Adding regression tests::
+@end menu
+
+
+@node       Kvasir regression tests
+@subsection Kvasir regression tests
+
+
+The Kvasir (Daikon C front-end) tests appear in the
+@file{$DAIKONDIR/tests/kvasir-tests} directory. These tests run Daikon to ensure
+that the Kvasir output is valid Daikon input. To run them, go to
+@file{$DAIKONDIR/tests/kvasir-tests} or of its sub-directories and run
+@command{make summary-w-daikon}. If any tests return @samp{FAILED}, then
+you should look at the appropriate @file{.diff} file. If you feel that the
+failure was actually a result of your Daikon changes and should be in fact
+correct output, then run @command{make update-inv-goals} to update the Daikon
+@file{invs.goal} file.
+
+
+
+@node       Adding regression tests
+@subsection Adding regression tests
+
+@cindex adding new regression tests
+@cindex new regression tests
+
+Most Daikon regression tests are in subdirectories of
+@file{$DAIKONDIR/tests/daikon-tests/}.
+(There is also a @file{$DAIKONDIR/tests/chicory-tests/} directory,
+but it is usually better to put tests in
+@file{$DAIKONDIR/tests/daikon-tests/}, even if they are exercising
+Chicory-specific behavior.)
+
+To create a new test, perform the following steps.
+
+@enumerate
+@item
+Create a new subdirectory of
+@file{$DAIKONDIR/tests/daikon-tests/}.
+
+@item
+Put the source files for the test under @file{$DAIKONDIR/tests/sources/},
+not in the test directory itself.  Your test may be able to re-use existing
+Java source code that appears in that directory.
+
+@item
+It is expedient to copy a Makefile from another subdirectory, such as
+@file{$DAIKONDIR/tests/@/daikon-tests/@/StackAr/}, then modify it.
+
+The @file{Makefile} must contain at least the following entries.
+
+@table @samp
+@item MAIN_CLASS
+Dot separated fully qualified name of the class that contains the main
+entry point for the test.  For example,
+@exampleindent 0
+@example
+MAIN_CLASS := DataStructures.StackArTester.
+@end example
+@c restore default:
+@exampleindent 5
+
+@item include ../../Makefile.common
+This includes the common portion of the test Makefiles that does most
+of the work.  See it for more information on the details of regression
+testing.
+
+@item instrument-files-revise:
+A target that writes the list of files to instrument.  For example,
+@exampleindent 0
+@example
+instrument-files-revise:
+    echo "DataStructures/StackAr.java" >| $@{INST_LIST_FILE@}
+@end example
+@c restore default:
+@exampleindent 5
+
+@end table
+
+If you run @command{make} (without a target), you will see a description of
+all of the Makefile's functionality.  Most of that is inherited from
+@file{$DAIKONDIR/tests/Makefile.common}.
+
+@item
+The @file{.goal} files are the expected results of running Daikon and its
+associated tools.
+
+For example, the @file{StackAr}
+directory contains the following @file{.goal} files, among others:
+@example
+Makefile
+Stackar.spinfo-static.goal
+StackAr.txt-daikon.goal
+StackAr.txt-esc.goal
+StackAr.txt-jml.goal
+StackAr.txt-merge-esc.goal
+StackAr.txt-merge-jml.goal
+@end example
+
+@noindent
+If you omit some @file{.goal} files, then the related tests will not be run.
+(If you can't figure out how to ensure the tests are not run, it may be
+easier to just add the additional @file{.goal} files.)
+
+You can start out with the @file{.goal} files empty.
+Execute @command{make diffs}, to produce output; the tests will fail
+because the output is not identical to the empty @file{.goal} files.
+When the test output is satisfactory, execute
+@command{make update-goals} to copy the actual results to the @file{.goal} files.
+Then, commit the goal files, Makefile, and source files
+to the repository.
+
+@item
+Make the new test be run by adding to the appropriate list (usually
+@samp{everything} or @samp{quick}) in
+@file{$DAIKONDIR/tests/daikon-tests/Makefile}.
+
+@end enumerate
+
+For more information, see the comments in file
+@file{$DAIKONDIR/tests/Makefile.common}.
+
+@node    Editing
+@chapter Editing Daikon source code
+
+The Daikon source code follows
+the @uref{https://google.github.io/styleguide/javaguide.html, Google Java Style}
+and also
+@uref{http://homes.cs.washington.edu/~mernst/advice/coding-style.html, Michael Ernst's coding conventions}.
+
+
+@menu
+* Eclipse setup::
+* Editing daikon.texinfo::
+@end menu
+
+@node    Eclipse setup
+@section Eclipse setup
+
+@menu
+* Start up Eclipse::
+* Existing projects::
+* External tools::
+* Eclipse debugger::
+* Using Git with Eclipse::
+@end menu
+
+@node       Start up Eclipse
+@subsection Start up Eclipse
+
+Just run the command @command{eclipse} at the command shell.
+
+There is one big catch:  take note of where you launch Eclipse and
+@b{always} launch Eclipse from the same location. For example, you might
+want to alias run-eclipse with @command{cd $HOME; eclipse}.
+For convenience, this is already done for you if you source the
+@file{daikon-dev.bashrc} startup script.
+There are ways around the launch location inconvenience, such as
+the -data switch, but the alias trick should be the simplest and least
+confusing workaround.
+
+
+It is strongly recommended that you make the following customizations to Eclipse:
+
+@exampleindent 1
+@smallexample
+Window >> Preferences >> Workbench >> Refresh Workspace on Startup
+Window >> Preferences >> Java >> Compiler >> Problems >> Unused imports >> Ignore
+Window >> Preferences >> Java >> Compiler >> Style >> Non-static access >> >> Ignore
+@end smallexample
+@c restore default:
+@exampleindent 5
+
+
+@node       Existing projects
+@subsection Work on existing coding projects
+
+@menu
+* Import existing project::
+* Import different project::
+@end menu
+
+@node          Import existing project
+@subsubsection Import an existing project
+
+First, do @command{cp $DAIKONDIR/java/.classpath-pag $DAIKONDIR/java/.classpath}
+
+Second, import Daikon into Eclipse.  To import:  start Eclipse, then choose
+menu item @samp{File->Import->ExistingProjectIntoWorkspace}, then enter (the full
+name of) directory @file{$DAIKONDIR/java} for Project Contents.
+
+Those two steps are all there is to it!
+
+(This simple procedure works because there are already
+@file{.project} and @file{.classpath} files in @file{$DAIKONDIR/java}.
+To import a project that doesn't have these files, you would need to create
+them (for instance, copy them from Daikon's), or else follow a different
+procedure to work on your project in Eclipse.)
+
+
+@node          Import different project
+@subsubsection Importing a different existing project
+
+Before working on code in Eclipse, you must import the code into
+the Eclipse workspace.  You also need to set up various compilation
+settings and specify jars and classes that should be in the
+compilation classpath.  (By default, Eclipse does not use your
+@env{CLASSPATH} environment variable.)
+
+@enumerate
+@item
+Change to the Java perspective by selecting "Java Perspective" in
+the perspective menu on the far-left tool panel.  You should see some
+of the windows move around to a structure similar to the screenshot
+below.
+
+@item
+Select the menu item File->New->Project
+
+@item
+On the popup window, select Java Project and click Next
+
+@item
+Call the project @samp{Daikon} or some other appropriate name and
+click Next.
+
+@item
+On the next window, create a new folder in
+the project called @file{src}, and answer Yes to the next dialog box asking
+you to confirm a change in the build directory. Select @samp{Ok} and you
+should see the new Project as a small folder icon in the package
+explorer.
+
+@item
+Select the menu item File->Import
+
+@item
+On the next popup window, select @samp{File System} and click
+Next. Browse to the folder containing your source code.  Using the
+standard @samp{PAG} setup, the folder should be @file{$DAIKONDIR/java}. The import
+destination should be @file{Daikon/src}.  Check the boxes for including
+Daikon, @samp{jtb}, and plume.
+
+@item
+Finally, add the required jars for Daikon by right-clicking on
+the project and selecting the Properties menu.  Select "Java Build
+Path", then "Libraries", then "Add External Jars" and add @file{tools.jar}
+and all @file{.jar} files in @file{daikon/java/lib/}.
+@end enumerate
+
+Note that if you follow these directions, then
+@b{the compiled classes do not appear in the directory from
+which you imported in the previous step}.
+Instead, the compiled classes appear in the Eclipse workspace
+directory. If you followed the setup instructions above, then the
+compiled code will be in "$HOME/.eclipse/Daikon/bin", which you
+should add to your classpath in order to use the updates you make from
+Eclipse.
+
+
+@node       External tools
+@subsection Interaction with external tools
+
+Eclipse compiles your project whenever you save.
+However, it parses frequently during editing and issues most or all of the
+errors and warnings that the compiler would have.  In order to clear a
+warning/error (in the Task List), you must save the file, however.
+
+If you change files outside Eclipse, you should refresh Eclipse, via
+right-clicking on the project or via menu item File >> Refresh.
+
+
+@node       Eclipse debugger
+@subsection Using the Eclipse debugger
+
+To begin debugging, you can click on the bug icon in the toolbar or
+select Run->Debug from the menu.  You will see the same window as if
+you selected Run->Run, but when the Java application launches, Eclipse
+will switch to the Debugging Perspective, which reveals many windows
+such as the stack trace window, the variable values window, and the
+step control panel.
+
+Debugging features (window locations given for default setup):
+
+@itemize
+@item
+Breakpoints: You can add breakpoints during editing by
+double-clicking on the left margin area of the source code.  When
+debugging, the program halts when it reaches a breakpoint.
+
+@item
+Stack Trace: Once the program halts at a breakpoint, the window
+in the upper-left corner window show the stack trace.
+
+@item
+Step Controls: Once the program halts at a breakpoint, the panels
+just below the stack trace allow you to step through the code one line
+at a time (step over), resume execution as normal (resume), step down
+into a method call (step into), or execute until leaving the current
+method (Step return).
+
+@item
+Variables: On the top right window, there is a tab pane that displays
+the values of objects and fields during a breakpoint halt.  You can also
+type in any legal Java expression that could appear at the breakpoint,
+and the window will display the value of the expression (don't forget to
+put a semi-colon at the end of your expression!).
+@end itemize
+
+
+@node       Using Git with Eclipse
+@subsection Using Git with Eclipse
+
+This section has yet to be completed, although you can just do all the editing,
+compiling, and
+running from the Eclipse IDE while doing version control commands from the shell
+or whatever current system you use.
+
+
+@node    Editing daikon.texinfo
+@section Editing daikon.texinfo
+
+The Daikon manual appears in @file{doc/daikon.texinfo}.  The manual is
+written using the Texinfo formatting system, which makes it easy to produce
+HTML, info, or printed (PDF) output.
+
+You can edit the manual using an ordinary text editor.  Emacs has a
+useful Texinfo mode.  You can mimic the formatting commands that
+already appear in the manual, but it's also a good idea to read the
+@uref{http://www.gnu.org/software/texinfo/,Texinfo documentation}.
+
+If you wish to create a new section of the manual, insert two lines like
+the following:
+
+@example
+@@node    @@@emph{Short title}
+@@@emph{chapter} @@@emph{Long title}
+@end example
+
+@noindent
+where you select the short and the long titles (which may
+be the same), and you may replace @code{@@chapter} by @code{@@section},
+@code{@@subsection}, or @code{@@subsubsection}.
+
+Follow the Texinfo conventions for marking up text.  In particular:
+@itemize
+@item
+Don't use regular double quotes (&quot;) in running text.  Instead, use
+two single back quotes and two regular quotes, ``like this''.  Emacs will
+do this substitution for you if you are using its Texinfo mode.
+
+@item
+Often, some other kind of markup is better than quotes:
+@itemize
+@item @code{@@code} is for names of classes, functions, variables, keywords, and
+      other fragments of source code.
+@item @code{@@var} is for meta-syntactic variables, not for referring to variables
+      that appear literally in the source code.
+@item @code{@@file} is for the names of files.
+@item @code{@@option} is for command-line options.
+@item @code{@@samp} is for sample input or output.  (Alternatively, you can use
+      @code{@@example} to set off longer input/output strings.)
+@item @code{@@command} is for command lines.
+@end itemize
+
+@item
+Examples shouldn't include extra spaces on the left for
+indentation since Texinfo already adds some indentation.  Remember
+that in code examples you need to replace all curly braces with @{ and @}
+to quote them for Texinfo.
+
+@item
+Don't mix @code{@@example} and @code{@@smallexample} in the same section since it
+looks funny to have examples in two different sized fonts.  If your example
+is too wide to fit on the page with @code{@@example}, it's better to insert some
+line breaks to make it more readable than to shrink the font.
+@end itemize
+
+Once you have edited the manual, run @command{make} twice (yes, you must run
+it twice) in order to generate formatted versions of the manual
+(@file{daikon.}@{@file{html},@file{pdf}@}).
+
+
+
+@node    Distribution
+@chapter Making a distribution (making a release)
+
+This section provides the instructions for publishing a Daikon distribution,
+or making a release.
+If you only want to
+create the @file{daikon.tar} or @file{daikon.tar.gz} file in your own
+directory, then simply run @command{make daikon.tar} or @command{make daikon.tar.gz}.
+
+Official releases have even version numbers (e.g., 4.6.4) and
+intermediate work has odd version numbers (e.g., 4.7.3).  This means
+as you prepare for a release the current version number is probably odd.  It will
+be updated as one of the steps in the release process.  After making the
+distribution, one of the final steps is to increment the version number again to
+prepare for subsequent development.  This system has the useful side effect
+of allowing the build and test process to be repeated to fix a problem
+without having to worry about updating or resetting the version number.
+Another advantage is to reinforce, to people who are working from the
+version control repository, that they are not using the released version,
+because the version numbers differ.
+
+The Daikon distribution site is located at
+@uref{http://plse.cs.washington.edu/daikon/} and is served from the UW CSE
+file system at
+@file{/cse/web/research/plse/daikon}.
+In order to be able to write to the distribution site, your CSE user id must be
+a member of the @samp{plse_www} Unix group.
+
+For each of the major steps below, an
+approximate elapsed time is listed.  These timings are up to date as of December 2015.
+They were measured on a quad x86-64 based
+machine at @nospellcheck{3.4GHz} with @nospellcheck{16GB} of memory
+(buffalo.cs.washington.edu).
+Barring any difficulties,
+the entire process
+will take at least two hours --- but could be much more depending on the number of
+different platforms on which you test the release.
+
+Each of the steps below assumes that you are using the Bash shell.
+
+@c maximize line size for all example command lists
+@exampleindent 1
+
+@menu
+* Directory layout requirements::
+* Distribution setup instructions::
+* Updating dependencies::
+* The day before the release::
+* Distribution steps::
+@end menu
+
+
+@need 1000
+@node    Directory layout requirements
+@section Directory layout requirements
+
+@itemize
+
+@item
+Environment variable @env{DAIKONDIR} must be set to a clone of
+@uref{https://github.com/codespecs/daikon}.
+
+@item
+A clone of
+@uref{https://github.com/codespecs/fjalar} must be a sibling of
+@file{$DAIKONDIR}.
+
+@c If it's created automatically, there is no need to mention it as a requirement.
+@c @item
+@c There must be a symbolic link from
+@c @file{$DAIKONDIR/fjalar} to @file{$DAIKONDIR/../fjalar}.
+@c If it does not already exist, the @command{rebuild-everything} step below
+@c will create it for you.
+
+@c Why would one ever want to create it manually, if the build process does so?
+@c Otherwise, you must make this link yourself.
+@c For example, if your Fjalar directory is named @file{myfjalar}:
+@c
+@c @example
+@c cd @@DAIKONDIR
+@c ln -nsf ../myfjalar fjalar
+@c @end example
+
+@item
+Environment variable @env{JAVA_HOME} must be set to the appropriate JDK installation.
+[TODO: Is this really necessary?]
+@c Example:  export JAVA_HOME=/usr/lib/jvm/java-1.8.0
+
+@item
+Optionally, set environment variable @env{BIBDIR} to a clone of
+@uref{https://github.com/mernst/plume-bib}.
+
+
+@end itemize
+
+
+@need 1000
+@node    Distribution setup instructions
+@section Distribution setup instructions
+
+@need 1000
+The recommended setup for the distribution process:
+@itemize
+@item get a fresh copy of your Bash shell (e.g., log out and log back in)
+@item @code{unset CHECKERFRAMEWORK}
+@c DAIKONDIR is necessary only for the instructions in this file.
+@c Maybe use a different environment variable?
+@item set @env{DAIKONDIR} as you would normally:  @code{export DAIKONDIR=...}
+@item set @env{JAVA_HOME} to point to JDK 8; for example, @code{export JAVA_HOME=/usr/lib/jvm/java-1.8.0}
+@c @item @command{source $DAIKONDIR/scripts/daikon.bashrc}
+@end itemize
+
+
+@need 1000
+@node    Updating dependencies
+@section  Getting the latest version of dependencies
+
+Update the Daikon source files to their most recent version.
+
+@smallexample
+set -o pipefail
+(cd $DAIKONDIR && git pull && git log --branches --not --remotes && git status)
+(cd $DAIKONDIR/../fjalar && git pull && git log --branches --not --remotes && git status)
+@end smallexample
+
+@noindent
+Each of the two commands should print exactly these lines:
+
+@example
+Already up-to-date.
+On branch master
+Your branch is up-to-date with 'origin/master'.
+
+nothing to commit, working directory clean
+@end example
+
+[Time: moments]
+
+The Fjalar tool set (primarily, Kvasir) is built upon, or uses pieces
+from, two open source projects.
+The home page for the Valgrind instrumentation framework is
+@uref{http://www.valgrind.org}.
+The home page for the GNU Binutils
+(a collection of binary tools, of which Kvasir uses only readelf) is
+@uref{http://www.gnu.org/software/binutils/}.
+
+File
+@uref{https://raw.githubusercontent.com/codespecs/fjalar/master/valgrind/REVISION,
+, @file{$DAIKONDIR/fjalar/valgrind/REVISION}} indicates the version of
+these tools that Kvasir uses.
+You can determine whether a newer version of these tools is available
+by comparing the @file{REVISION} file to
+@url{http://valgrind.org/downloads/current.html} and
+@url{http://ftp.gnu.org/gnu/binutils/?C=M;O=D}.
+If so, you should update the Fjalar source tree as soon as practical.
+For details, see the separate document ``Merging
+newer versions of Valgrind into Fjalar'', which appears
+@uref{https://github.com/codespecs/fjalar/blob/master/doc/valgrind-merge.texinfo,
+, in the @file{fjalar} repository}.
+
+
+@node    The day before the release
+@section The day before the release
+
+Do these steps the day before the release, so that tests have time to
+complete overnight.
+
+@itemize
+
+@need 1000
+@item
+Edit the @file{doc/CHANGES} file to indicate what has changed
+in this version.  A good way to determine what has changed is to diff
+the Texinfo source files in the @file{doc/} directory against the previous
+versions:
+
+@smallexample
+cd $DAIKONDIR/doc
+diff -b -u -s --from-file /cse/web/research/plse/daikon/download/doc *.texinfo
+@end smallexample
+
+@need 1000
+Another good source of information are the repository logs since the
+last release:
+
+@smallexample
+cd $DAIKONDIR
+DAIKONVERSION=`wget -q http://plse.cs.washington.edu/daikon/download/doc/VERSION \
+    -O - | xargs echo -n`
+git log v$DAIKONVERSION..HEAD
+@end smallexample
+
+@c TODO: How can this be done for Git?
+@c As we normally only tag the repository when we make a release, this can
+@c usually be simplified to:
+@c
+@c @example
+@c git log  -v -r "last(tagged())::"
+@c @end example
+
+@need 1000
+In addition, you should run the same command in your Fjalar clone:
+
+@smallexample
+cd $DAIKONDIR/fjalar
+DAIKONVERSION=`wget -q http://plse.cs.washington.edu/daikon/download/doc/VERSION \
+    -O - | xargs echo -n`
+git log v$DAIKONVERSION..HEAD
+@end smallexample
+
+When you have competed your updates, commit and push the changes.
+
+[Time: a few minutes]
+
+
+@need 1000
+@item
+Check the release documents for spelling errors.
+
+@example
+cd $DAIKONDIR/doc
+make spell-check
+@end example
+
+Any words that may be spelled incorrectly are output to standard out.
+
+@itemize
+
+@item
+If the word is misspelled, correct it in the source (@file{.texinfo}) file.
+
+@item
+If the word is spelled correctly and is a normal English word, add it to
+@file{daikon.dict}, keeping the list in alphabetical order.
+
+@item
+If the word is spelled correctly and is a proper name, such as a person's
+or company's name, then either add it to @file{daikon.dict} or
+write @code{@@nospellcheck} around it.
+
+@item
+If the word is technical information, such as part
+of a computer command or filename, then mark it with a Texinfo command;
+see ``Chapter 9: Marking Text,
+Words and Phrases'' of the
+GNU Texinfo Manual (@uref{http://www.gnu.org/software/texinfo/manual/texinfo/texinfo.pdf,, PDF},
+@uref{https://www.gnu.org/software/texinfo/manual/texinfo/texinfo.html#Marking-Text,, HTML}).
+
+@end itemize
+
+[Time: moments]
+
+@item
+Update dependencies in @file{daikon/java/lib/}.  For details, see @file{daikon/java/lib/README}.
+
+@end itemize
+
+@noindent
+TODO: it would be good to build the staging release the day before, too, so
+that links can be fixed the day before the release or at least very early
+in the process.
+
+
+@node    Distribution steps
+@section Steps for making the distribution
+
+@enumerate
+
+@need 1000
+@item
+Verify that Daikon passes its tests.
+
+All of the jobs at @url{https://dev.azure.com/mernstdaikon/daikon/_build} should
+pass (they should be green).  Here is a list of them:
+
+@exampleindent 0
+@example
+@* @url{https://dev.azure.com/mernstdaikon/daikon/_build/latest?definitionId=1&branchName=master}
+@html
+<img
+src="https://dev.azure.com/mernstdaikon/daikon/_apis/build/status/codespecs.daikon?branchName=master"
+alt="Azure Pipelines mernstdaikon/daikon status"/>
+@end html
+@* @url{https://dev.azure.com/mernstdaikon/daikon/_build/latest?definitionId=2&branchName=master}
+@html
+<img
+src="https://dev.azure.com/mernstdaikon/daikon/_apis/build/status/codespecs.fjalar?branchName=master"
+alt="Azure Pipelines mernstdaikon/fjalar status"/>
+@end html
+@end example
+@exampleindent 1
+
+If any of the jobs is not passing, then correct the problem and wait for
+the jobs to complete and pass.
+The delay to wait for this to happen is a reason that you should avoid
+making changes to Daikon on the release day.  Instead, you should make
+changes the day before to permit the continuous integration jobs to run
+overnight.
+
+
+@item
+Do a very clean rebuild of everything.
+
+@example
+cd $DAIKONDIR
+make very-clean clean-kvasir
+make rebuild-everything
+@end example
+
+@c Time on buffalo as of 12/16/2015
+@c [Time: 18 min]
+@c buffalo has twice the memory of godwit.
+@c Time on godwit as of 11/27/2014
+[Time: 20 min]
+
+
+@need 1000
+@item
+Once you have successfully reached this point, you are ready to make a release
+candidate and begin testing it.
+The following command will verify that @file{doc/CHANGES} is up-to-date and then list
+any uncommitted files.
+
+@example
+make check-repo
+@end example
+
+@noindent
+The result of the command above should be:
+
+@example
+On branch master
+Your branch is up-to-date with 'origin/master'.
+nothing to commit (use -u to show untracked files)
+@end example
+
+@noindent
+If the command output lists any files, they need to be
+committed to the repository and pushed now.
+In that case, you will need to return to step 1 and wait for the
+CI jobs to complete.
+
+[Time: moments]
+
+
+@need 1000
+@item
+Set the version number to an even number.
+You may:
+@itemize
+@item
+Manually edit file @file{$DAIKONDIR/doc/VERSION}, or
+@item
+If the revision number just needs to be incremented
+by 1 (to go from odd to even) you may use:
+@example
+make update-dist-version-file
+@end example
+@end itemize
+
+Note that if a new feature has been added, or if some change has made
+the current version incompatible from the previous release (such as a
+change in the dtrace file format or revised names for tool options),
+then you should manually edit the VERSION file to increment the minor
+version number and reset the revision number to zero.
+
+Optionally, override the distribution date (default: today) by
+redefining the environment variable @command{TODAY}:
+
+@example
+export TODAY='November 1, 2013'
+@end example
+
+@need 1000
+Now, update the appropriate files with the date and version number
+of the release and commit these changes back to the repository:
+
+@example
+make update-run-google-java-format
+make update-and-commit-version
+@end example
+
+[Time: moments]
+
+
+@need 1000
+@item
+It is important to build the release candidate from a clean enlistment.
+(TODO: In the future, perhaps do all release-related work on a branch.
+Otherwise, use of the below commands requires committing changes to master,
+and there might be many commits if there is trouble with the release.)
+This is to ensure we are testing only the files intended for release and
+that those files are the same as a user would receive with a clone of
+the repository. This needs to be done in a separate, new Bash command
+shell.
+The following commands get a fresh clone of Daikon, set some
+environment variables and then
+build everything to be distributed and copy it to the temporary staging area
+@c not @uref{...} because we don't want robots to notice and crawl the link
+(http://plse.cs.washington.edu/staging-daikon/).
+
+@c can't use 'daikon' as will conflict with jar build if no '/scratch' on system.
+
+@example
+# First, start a separate, new Bash command shell.  Don't kill your old one.
+
+mkdir -p /tmp/$USER
+cd /tmp/$USER
+rm -rf stage-daikon
+git clone --depth 3 https://github.com/codespecs/daikon stage-daikon
+cd /tmp/$USER/stage-daikon
+export DAIKONDIR=`pwd`
+export JAVA_HOME=/usr/lib/jvm/java-1.8.0
+unset CHECKERFRAMEWORK
+make compile
+make staging
+@end example
+
+The final output of this command
+will be a list of files that were added/removed since the
+last release.
+If any of these differences is unexpected, then investigate.
+If any corrections are required, do so back in the main
+repository, commit the changes, and
+then repeat this step.
+
+[Time: 23 min]
+
+
+@need 1000
+@item
+Next, check the staging website to see if it has any broken document links.
+
+@example
+make check-for-broken-doc-links
+@end example
+
+Review @file{checklink.log} and make corrections as appropriate.
+
+In some cases a "403 Forbidden" error is transient, due to the website
+being down.  You can check such links by hand.
+
+If the URL is correct but cannot be checked (for example, because the website
+prohibits spiders or because the URL  redirects to another URL but you prefer
+to keep the first URL in your document), then you may need to add lines to
+an appropriate part of file @file{checklink-args.txt} in
+@url{https://github.com/plume-lib/checklink}.
+
+In most cases (and for most 404 errors), you should fix the document with
+the incorrect link.
+Here is a workflow that may be used to deal with broken links:
+@itemize
+@item
+Use the @samp{Wayback Machine}, @url{http://archive.org/web/}, to see what the old content was.
+@item
+Do a web search on the content to see if the page has relocated elsewhere.
+@item
+If the web search is not successful, email the maintainer of the old content.
+@end itemize
+
+Note that you must fix problems in the original repository,
+not in the drop directories. This means:
+@itemize
+@item
+Switch back to your original Bash shell.
+@item
+Correct the file. (Most likely located beneath either
+@file{$DAIKONDIR/doc} or
+@file{$BIBDIR} (@file{~/bib/} if @file{$BIBDIR} is not set).)
+@item
+Commit the changes.
+@item
+Repeat the previous step to rebuild the release candidate.
+@item
+Repeat this step to verify your corrections.
+@end itemize
+
+If @file{checklink.log} contains an error message of the form:
+@smallexample
+List of broken links and other issues:
+http://plse.cs.washington.edu/daikon/download/doc/developer/Requirements-for-compiling-Kvasir.html
+  Line: 185
+  Code: 200 OK
+ To do: Some of the links to this resource point to broken URI fragments
+        (such as index.html#fragment).
+The following fragments need to be fixed:
+        Requirements-for-compiling-Kvasir       Line: 185
+@end smallexample
+@noindent
+This is probably caused by the way @command{makeinfo} deals with chapter splits via
+indirect references through stub files.  Two @command{suppress-fragment} entries in
+@file{checklink-args.txt} in @url{https://github.com/plume-lib/checklink}
+are required.  For the example above, these
+would be:
+@smallexample
+--suppress-fragment http://plse.cs.washington.edu/daikon/download/doc/developer/\
+Requirements-for-compiling-Kvasir.html#Requirements-for-compiling-Kvasir
+--suppress-fragment http://plse.cs.washington.edu/staging-daikon/download/doc/developer/\
+Requirements-for-compiling-Kvasir.html#Requirements-for-compiling-Kvasir
+@end smallexample
+but on two long lines without any @code{\} line continuation characters.
+
+[Time: 8 min]
+
+
+@need 1000
+@item
+Test the staged distribution on a 64-bit Fedora machine.
+Since the machine you are using to build the release is probably
+such a machine, you may simply run the command below.  Success is indicated
+by invariant output being written to the screen.
+
+@example
+make test-staged-dist
+@end example
+
+@c Time on buffalo as of 04/1r36/201r65
+[Time: 1 min]
+
+
+@need 1000
+@item
+Test the distribution on Ubuntu and Mac OS machines.
+
+To use Azure Pipelines,
+navigate to
+@url{https://dev.azure.com/mernstdaikon/daikon/_build?definitionId=3&_a=summary}
+and click ``Run pipeline''.
+
+It may take a while for the new jobs to complete,
+if the CI service is busy running other jobs for the codespecs organization.
+
+If there is a problem, fix it and start over.
+
+[Time: 15 min]
+
+
+@need 1000
+@item
+Once you have successfully reached this point, you have a valid release candidate
+and are ready to make the actual release.
+@strong{Caution:} If somewhere above you made a change to correct a problem you should have
+restarted the release process.
+
+At this point we are done building and testing the release candidate and you
+should exit the Bash command shell created in step 5 and return to your
+original Bash shell.
+
+
+@need 1000
+@item
+Update the website by deleting the current release
+and then making the staged version the (new) current release.
+
+@example
+cd $DAIKONDIR
+make staging-to-www
+@end example
+
+[Time: 1 min]
+
+
+@need 1000
+@item
+Add a version label to the repository:
+
+@example
+cd $DAIKONDIR
+DAIKONVERSION=`cat $DAIKONDIR/doc/VERSION | xargs echo -n`
+git tag -a v$DAIKONVERSION -m $DAIKONVERSION
+git push --tags
+cd fjalar
+git tag -a v$DAIKONVERSION -m $DAIKONVERSION
+git push --tags
+@end example
+
+[Time: moments]
+
+
+@need 1000
+@item
+At this point the distribution has been completed.
+Bump the version number to an odd value for continuing development.
+
+@example
+cd $DAIKONDIR
+export -n TODAY
+make update-dist-version-file
+make update-doc-dist-date-and-version
+@end example
+
+[Time: moments]
+
+
+@need 1000
+@item
+Verify these changes by doing product builds (no need to clean first) and
+running a short verification test.
+
+@example
+cd $DAIKONDIR
+make rebuild-everything quick-test
+@end example
+
+Success is indicated by invariant output being written to the screen.
+
+[Time: 5 min]
+
+
+@need 1000
+@item
+Commit changes back to the repository:
+
+@example
+cd $DAIKONDIR
+git commit -a -m "Bump version number for ongoing development."
+git push
+cd fjalar
+git commit -a -m "Bump version number for ongoing development."
+git push
+@end example
+
+[Time: moments]
+
+
+@need 1000
+@item
+Send mail to the @samp{daikon-announce} mailing list.
+Use the suggested template below, replacing <version number> with
+the actual number of the release.
+
+@exampleindent 0
+@example
+<to:>  daikon-announce@@googlegroups.com
+<subject:>  Daikon version <version number> has been released
+
+Daikon version <version number> is now available.
+
+Please see the entry from the doc/CHANGES file that appears below for more details.
+
+You can download the latest version of Daikon at:
+http://plse.cs.washington.edu/daikon/download/
+
+  <your name>
+
+<a copy of the current entry from the doc/CHANGES file, with
+paragraphs refilled (remove unnecessary line breaks that trim lines
+to 80 columns for the CHANGES file but aren't desirable in email)>
+@end example
+
+Note that if you use Microsoft Outlook 2010 or 2013 as your mailer,
+by default it will insert hard breaks in your outgoing message. See
+@uref{https://blog.techhit.com/551102-how-to-prevent-outlook-from-adding-line-breaks-to-sent@/-plain-text-messages}
+for a work around.  You must quit and restart Outlook to activate
+the change.
+
+@end enumerate
+
+@c restore default:
+@exampleindent 5
+
+@node    Historical
+@chapter Analyzing historical versions of Daikon
+
+@cindex repository
+@cindex Git repository
+@cindex Version control repository
+
+@c Old info about how to create a distribution of the repository was
+@c removed from this file on 12 Nov 2010.
+
+Daikon's version control repository, available at
+@uref{https://github.com/codespecs/daikon}, contains complete development
+history starting from October 1, 2010, and partial development history
+before that time.  The reason for this is that converting the full CVS
+repository would create a repository that would be too
+large for convenient use, and that would also be too large to upload to
+Google Code or GitHub.  The original CVS repository is available for download from
+@uref{http://plse.cs.washington.edu/daikon/download/inv-cvs/}, as files
+@file{inv-cvsaa} through @file{inv-cvsai}.  Download
+all 9 files, and then run the following commands to re-create the CVS
+repository, which will be named @file{invariants/}:
+
+@example
+cat inv-cvsa? > inv-cvs-full.zip
+unzip inv-cvs-full.zip
+@end example
+
+
+Developers can usually make do with the Git repository, which has
+complete history for the Java source code.
+
+The CVS repository is most often used by researchers --- for example, in
+the testing community --- because it contains both a CVS repository and
+a set of tests that is more extensive than those in the Daikon
+distribution.  If you are a researcher who uses the Daikon version
+control history, please let us know of any publications so that we can
+publicize them at
+@uref{http://plse.cs.washington.edu/daikon/pubs/#daikon-testsubject}.
+
+The layout of the Daikon CVS repository differs slightly from that of
+the distribution.  For example, the top-level directory is named
+@file{invariants/} instead of @file{daikon/}.
+
+The remainder of this section points out some pitfalls for such
+researchers.  Although
+these problems are easy to avoid, some previous published work has made
+these mistakes; don't let that happen to you!
+
+Recall that Daikon contains two sets of tests (@pxref{Testing}); you
+should include both in any analysis of Daikon's tests.
+(Or, if you can analyze only one of the two sets of tests, then clearly
+explain that the regression tests are the main tests.)
+The regression tests use Makefiles to avoid re-doing unnecessary work,
+so any description of the time taken to run Daikon's tests should be a
+measurement of re-running the tests after they have been run once, not
+running them from a clean checkout or after a @command{make clean} command.
+
+Daikon intentionally does not contain tests for third-party libraries
+that are included (sometimes in source form) in the Daikon distribution.
+As one example, the @file{java/jtb/} directory
+contains an external library.  Therefore, any measurement of Daikon's code
+coverage should not include such libraries, whether distributed in
+source or as @file{.jar} files.
+
+Historically, the file @file{doc/www/mit/index.html} in the CVS repository
+contains information about how Daikon's developers use Daikon.
+This file changes from
+time to time --- for instance, it changed when a CVS branch was created
+and later when development on it ceased (@pxref{Branches}).
+
+
+@menu
+* Branches::
+@end menu
+
+@node    Branches
+@section Branches
+
+@cindex branches, in CVS repository
+
+The Daikon CVS repository contains two branches:  a main trunk and a
+branch (named @samp{ENGINE_V2_PATCHES}) for version 2 of Daikon.
+
+The CVS manual
+(see section
+@c This is the official source for the manual since it is linked from the
+@c GNU CVS webpage (http://www.nongnu.org/cvs/).
+@uref{https://web.archive.org/web/20140619100950/http://ximbiot.com/cvs/manual/cvs-1.11.23/cvs_5.html,
+``Branching and merging''} of the manual @emph{CVS --- Concurrent Versions System})
+describes CVS branches:
+
+@quotation
+CVS allows you to isolate changes onto a separate line of development,
+known as a @dfn{branch}.  When you change files on a branch, those changes
+do not appear on the main trunk or other branches.
+
+Later you can move changes from one branch to another branch (or the
+main trunk) by @dfn{merging}.  Merging involves first running
+@command{cvs update -j}, to merge the changes into the working directory.
+You can then commit that revision, and thus effectively copy the
+changes onto another branch.
+@end quotation
+
+@c It is important that the following paragraph not contain any substrings
+@c matching the regex /(Daikon version )[0-9]+(\.[0-9]+)*/,
+@c because such phrases are automatically changed at the time of a release to
+@c mention the most recent Daikon version, while the intent of this paragraph
+@c is to discuss historical versions.
+In early January 2002 (or perhaps in late 2001), we created the
+@samp{ENGINE_V2_PATCHES} branch at the @file{invariants/java/daikon level} of
+the Daikon CVS repository.  Primary development continued along the CVS
+branch @samp{ENGINE_V2_PATCHES}, which we called
+``Daikon version @c trick version updater
+2''  We
+called the CVS trunk ``Daikon version @c trick version updater
+3'' it was experimental, and very
+few people ran its code or performed development on it.  Periodically,
+all changes made to the branch would be merged into the trunk, as one
+large checkin on the trunk.  Later, development on version 3 became more
+common, some changes were merged from the trunk to the branch, and
+version 2 was finally retired (and no more changes were made to the
+branch) in December 2003.
+
+A regular @command{cvs checkout} gets the trunk.  The @option{-r} flag specifies a
+branch.  For example, to get the branch as of June 9, 2002, one could do
+
+@example
+cvs -d $pag/projects/invariants/.CVS co -r ENGINE_V2_PATCHES \
+    -D 2003/06/09 invariants/java/daikon
+@end example
+
+Some warnings about analyzing historical versions of Daikon:
+@enumerate
+@item
+When analyzing 2002 (and at least parts of 2003) you should be careful
+to use the branch, not the trunk.  Or, you could analyze both (but as a
+single development effort, not as separate efforts).
+@item
+When a programmer periodically merged changes from the branch to the
+trunk (or vice versa), that operation resulted in very large checkins.
+The times at which these merges occurred is indicated in file
+@file{invariants/java/daikon/merging.txt} in the repository; for
+example, this happened 34 times during calendar year 2002.  CVS checkins
+for the branch properly attribute and time-stamp the work that appears
+as a single large checkin on the trunk.
+@item
+There may be long periods of time in the branch (respectively, the
+trunk) with no checkins, but that does not necessarily indicate a lacuna
+in development, as checkins might have occurred in the meanwhile in the
+trunk (respectively, the branch).
+@end enumerate
+
+
+
+@node     File formats
+@appendix File formats
+
+@cindex file formats
+
+This chapter contains information about the file format of Daikon's
+input files.  It is of most information to those who wish to write a
+front end, also known as an instrumenter
+(@pxref{Front ends (instrumentation),,,daikon,Daikon User Manual}).
+A new front end enables Daikon to detect
+invariants in another programming language.
+
+Daikon's input is conventionally one or more @file{.dtrace} data trace
+files.  (Another, optional type of input file for Daikon is a @dfn{splitter}
+info file; @pxref{Splitter info file format,,,daikon,Daikon User Manual}.)
+A trace file is a text file that consists of newline-separated
+records.  There are two basic types of records that can appear in Daikon's
+input:  program point declarations, and trace records.
+The declarations describe the structure of the trace records.  The trace
+records contain the data on which Daikon operates --- the run-time
+values of variables in your program.
+
+Each declaration names an instrumented program point and lists the
+variables at that program point.  A program point is a location in the
+program, such as a specific line number, or a specific procedure's entry or exit.
+An instrumented program point is a place where the instrumenter may emit
+a trace record.
+A program point declaration
+may be repeated, so long as the declarations match exactly (any
+declarations after the first one have no effect).
+
+A data trace record (also known as a @dfn{sample})
+represents one execution of a program point.  The
+record specifies the program point and gives the runtime values of each
+variable.  The list of variables in the data trace record must be
+identical to that in the corresponding declaration.  For a given program point,
+the declaration must precede the first data trace record for the program
+point.  It is not required that all the program point declarations
+appear before any of the data trace records.
+
+There exist some other declaration-related records;
+@pxref{Declaration-related records}.
+
+
+@menu
+* Declarations in a separate file::
+* Conventions::
+* Declarations::
+* Data trace records::
+* Example files::
+* Version 1 Declarations::
+@end menu
+
+
+@node    Declarations in a separate file
+@section Declarations in a separate file
+
+
+Instead of placing both declarations and data trace records in a single
+file, it is permitted to place the declarations in one or more
+@file{.decls} @dfn{declaration files} while leaving the data trace records
+in the @file{.dtrace} file.  This can be convenient for tools that
+perform a separate instrumentation step, such as
+@command{dfepl} (@pxref{dfepl,,,daikon,Daikon User Manual}).
+Such a tool takes as
+input a target program to be analyzed, and produces two outputs:  a
+@file{.decls} file and an instrumented program.  Executing the
+instrumented program produces a @file{.dtrace} file containing data
+trace records for all the program points that appear in the
+@file{.decls} file.  This approach works fine and is easier to
+implement in certain situations, but has a few disadvantages.  It
+requires the user to perform at least two steps --- instrumentation and
+execution --- and the existence of two versions of the program
+(instrumented and uninstrumented) can lead to confusion or extra work.
+It is also more convenient to have a single file that contains all
+information about a program, rather than multiple @file{.decls} files
+that must be associated with the @file{.dtrace} file.
+
+It is also permitted for a declaration to appear more than once in Daikon's
+input.  The declaration must be identical in all occurrences.  This is
+useful when running Daikon with multiple @file{.dtrace} files, each of
+which contains its own declarations.
+
+
+@node    Conventions
+@section File format conventions
+
+
+Daikon files are textual, to permit easier viewing and editing by humans.
+Each record is separated by one or more blank lines.
+To permit easier parsing by programs, each piece of information in a record
+appears on a separate line.
+
+Outside a record, any line starting with a pound sign (#) or double
+slashes (//) is ignored as a comment.  Comments are not permitted
+inside a record.
+
+@node    Declarations
+@section Declarations
+
+@cindex declaration format
+@cindex @file{.decls} file
+
+The trace file (or declaration file) first states the declaration file format
+version number (@pxref{Declaration version}).
+It may also specify some other information about the file
+(@pxref{Declaration-related records}).
+Then, it defines each program point and its variables.
+
+Indentation is ignored, so it may be used to aid readability.
+Fields with defaults can be omitted.
+
+As a rule, each line of the declaration file is of the form
+@code{<field-name> <field-value>}.
+
+Some additional details about the declaration file format appear in file
+@code{daikon/doc/decl_format.txt} in the Daikon source code.
+
+
+@menu
+* Declaration-related records::
+* Program point declarations::
+* Variable declarations::
+@end menu
+
+
+@node       Declaration-related records
+@subsection Declaration-related records
+
+@exampleindent 1
+
+@menu
+* Declaration version::
+* Input-language declaration::
+* Variable comparability::
+* ListImplementors declaration::
+@end menu
+
+@node          Declaration version
+@subsubsection Declaration version
+
+The declaration version record must be the first record in the file.
+
+The declaration version record is as follows:
+@example
+decl-version <version>
+@end example
+
+@noindent
+The current version is 2.0.
+
+Previous versions (see @ref{Version 1 Declarations}) did not include a
+version field and are identified by the lack of this field.
+
+
+@node          Input-language declaration
+@subsubsection Input-language declaration
+
+You can specify the language in which the program was written with a
+record of the form
+
+@example
+input-language <language>
+@end example
+
+@noindent
+The language string is arbitrary and is not used.
+
+
+@node          Variable comparability
+@subsubsection Variable comparability
+
+@cindex comparability, for variables
+@cindex variable comparability
+@cindex units of measurement, see variable comparability
+
+The Variable comparability record indicates how the comparability field
+of a variable declaration should be interpreted.
+
+Its format is:
+@example
+var-comparability <comparability-type>
+@end example
+
+@noindent
+The possible values for @var{comparability-type} are @code{implicit} and
+@code{none}.
+
+@code{implicit} means ordinary comparability as described in
+@ref{Variable declarations}.  (The name @code{implicit} is retained
+for historical reasons.)
+
+This record is optional.  The @code{implicit} type is the default.
+
+
+@node          ListImplementors declaration
+@subsubsection ListImplementors declaration
+
+This declaration indicates classes that implement the
+@code{java.util.List} interface, and should be treated as sequences
+for the purposes of invariant detection.  The syntax is as follows:
+
+@example
+ListImplementors
+<classname1>
+<classname2>
+...
+@end example
+
+@noindent
+Each @code{classname} is in Java format (for example, @file{java.util.LinkedList}).
+
+The @option{--list_type} command-line option to Daikon can also be used to
+specify classes that implement lists;
+@pxref{Options to control invariant detection,,,daikon,Daikon User Manual}.
+
+
+
+@node       Program point declarations
+@subsection Program point declarations
+
+The format of a program point declaration is:
+@example
+ppt <ppt-name>
+<ppt-info>
+<ppt-info>
+...
+<variable-declaration>
+<variable-declaration>
+...
+@end example
+
+@noindent
+The program point name can include any character.  In the declaration
+file,
+@c Replacing blanks by \_ isn't important on this line, but is important
+@c on other lines.
+blanks must be replaced by @code{\_}, and backslashes must be escaped as @code{\\}.
+Program point names must be distinct.
+
+@c Note:
+@c The Version 1 declaration file format specification is described in
+@c "V1 pptname format", but it is not relevant for version 2.
+
+While Daikon does not infer program point relationships from @code{ppt-name}s,
+it does require these names to conform to a set syntax.
+The following patterns are for the @code{enter}, @code{subexit},
+@code{class} and @code{object} @code{ppt-type}s, respectively.
+
+@example
+<fully qualified class name>.<method/function name>(<argument types>):::ENTER
+<fully qualified class name>.<method/function name>(<argument types>):::EXIT<id>
+<fully qualified class name>:::CLASS
+<fully qualified class name>:::OBJECT
+@end example
+
+@noindent
+Since in most languages a method or function may have multiple exit points,
+the @code{ppt-name} for a @code{subexit} @code{ppt-type} must be appended
+with a unique id.  Typically, this is the corresponding source line number.
+
+@c Note:
+@c There is a little code in FileIO.java to support additional ppt-names ending
+@c in THROWS and GLOBAL.  Neither Daikon or Kvasir currently use them.
+
+The following information about the program point (@code{ppt-info}) can be specified:
+@itemize
+@item @code{ppt-type <type>}
+
+Specifies the @var{type} of the program point.  Possible program point
+types are @code{point}, @code{class}, @code{object}, @code{enter},
+@code{exit}, @code{subexit}.  Except for @code{point} all of these
+types are related to the program point hierarchy (see @ref{Dataflow hierarchy}).
+
+A @code{point} program point is one that is @emph{not} involved in a
+program point hierarchy.   This is normally used when the input is not
+from a programming language or when is no dataflow hierarchy.
+
+@item @code{flags <flags>}
+
+Specifies one or more flags for this @code{ppt}.  The possible flags are:
+@code{static}, @code{enter}, @code{exit}, @code{private}, @code{return}.
+It should be noted that neither Daikon nor Kvasir currently use or
+output this field.
+
+@item @code{parent <relation-type> <parent-ppt-name> <relation-id>}
+
+Specifies the program point hierarchy (@ref{Dataflow hierarchy}).
+
+In particular, each @code{parent} field names one parent of this program
+point.  A parent program point
+is a point whose samples should include all of the samples at this
+program point.  For example, an object program point is a parent of
+each of the method program points in that object.
+
+The @var{relation-type} is the type of parent-child relationship in
+the hierarchy. There are a few relationship types used internally
+by Daikon, but the only one output to the data files is @code{parent}.
+@c types are: parent, user, enter-exit, exit-exitnn, merge-child and ppt-pptcond
+A @code{parent} relationship is one where the program points themselves
+are explicitly related, such as an enter and an exit point.  All of the
+variables at one of the points exists at the other.  A @code{user}
+relation is one where a class is used at another point, such as at an
+enter point.  For example, if a reference to class A were passed to
+routine @samp{r1}, the values found at enter and exit of @samp{r1} could
+be applied to
+the class/object program point for A.  By default @code{user} relations
+are not used because they can be recursive.
+
+The @var{relation-id} is a unique integer that identifies this parent
+relation.  They are used when defining the the specific parent
+relations for variables.
+
+Multiple parent fields can be specified.
+
+@end itemize
+
+@c (unpublished notes to Daikon developers)
+@c
+@c The following features were added to Daikon to support the Galar
+@c front end, which in turn supported the ClearView tool
+@c (https://homes.cs.washington.edu/~mernst/pubs/automatic-patching-sosp2009.pdf).
+@c Unfortunately, the Galar front end was never released.
+@c
+@c There are five undocumented items: ppt-func, ppt-length,
+@c ppt-successors, ppt-basic_block and ppt-combined_basic_block.
+@c
+@c If the ppt-type is basic_block then the ppt-name is expected to be of
+@c the form "<string>:0x<hex offset>:::BB".  I'm not clear what the
+@c <string> represents or how it is used.  The main item is the <hex
+@c offset> which is the offset from the start of the function to this basic block.
+@c
+@c The ppt-func record has a string argument for function_id.  I think
+@c each basic_block ppt is supposed to have one of these records to
+@c identify the containing function.
+@c
+@c The ppt-length record has a numeric argument for bb_length.  I think
+@c each basic_block ppt is supposed to have one of these records
+@c indicating the length of the basic block.  I'm assume this is in bytes not
+@c instructions.
+@c
+@c The ppt-successors record has a list of string arguments that identify
+@c the successor blocks of the current basic block.  I think these names
+@c are supposed to be in the same format as the ppt-name.
+@c
+@c (end developer notes)
+
+
+@node       Variable declarations
+@subsection Variable declarations
+@cindex declaration file format
+
+The format of a variable declaration is:
+@example
+variable <name>
+  <variable-info>
+  <variable-info>
+  ...
+@end example
+
+@noindent
+The variable name is arbitrary, but for clarity, it should match what is
+used in the programming language.  All characters are legal in a name,
+but blanks must be represented as @code{\_} and backslashes as
+@code{\\}.
+
+If the variable is an array, @code{..} marks the location of
+array indices within the variable name.  Some examples of names are:
+@example
+this.theArray
+this.theArray[..]
+this.stack.getClass()
+@end example
+
+The following information about the variable (@code{variable-info})
+can be specified:
+@itemize
+
+@item @code{var-kind <kind> [<relative-name>]}
+
+Specifies the variable kind.  Possible values are: @code{field},
+@code{function},
+@code{array}, @code{variable}, @code{return}.  If @code{field} or
+@code{function}
+are specified, the relative name of the field or function must be
+specified.  For example, if the variable is @code{this.theArray}, the
+relative name is @code{theArray}.  Pointers to arrays are of type
+@code{field}.  The arrays themselves (a sequence of values) are of
+type @code{array}.  A var-kind entry is required in each variable block.
+
+@item @code{enclosing-var <enclosing-var-name>}
+
+The variable that contains this variable.  Required for fields and
+arrays.  Required for functions that represent an instance method.
+Forbidden for functions that specify a static method or a function in
+a non-object-oriented language.
+A variable is specified by its name.  The named variable must
+be defined at the same program point.
+If a variable is omitted (e.g., by the omit-var switch),
+any variable for which it is the enclosing variable must be omitted as
+well.
+
+For example, if the variable is @code{this.theArray}, the
+enclosing variable is @code{this}.
+
+@item @code{reference-type pointer|offset}
+
+Specifies the kind of reference for variables which are structures or
+classes.  The possible values are @code{pointer} or @code{offset}.  In
+C, @code{pointer} is used if the variable is a pointer, @code{offset}
+is used when the structure is placed inline.  Pointer would be used
+for all references to Java objects.  Defaults to pointer.
+
+@item @code{array <dim>}
+
+The number of array dimensions inherited or declared by this variable.
+The valid values are 0 or 1.  This should be specified for any variable
+that has multiple values.  If not specified it defaults to 0.  Future
+versions of Daikon may support more levels of arrays.
+
+@item @code{dec-type <language-declaration>}
+
+This is what the programmer used in the declaration of the variable.
+Names for standard types should use Java's names (e.g., @code{int},
+@code{boolean}, @code{java.lang.String}, etc.),
+but names for user-defined or language-specific
+types can be arbitrary strings.  A @code{dec-type} entry is required in each
+variable block.
+
+@item @code{rep-type <daikon-type>}
+
+This describes what will appear in the data
+trace file.  For instance, the declared type might be @code{char[..]} but
+the representation type might be @code{java.lang.String}.  Or, the declared
+type might be @code{Object} but the representation type might be
+@code{hashcode}, if the address of the object is written to the data trace
+file.  A rep-type entry is required in each
+variable block.
+
+@cindex pointer variables, see @dfn{hashcode} type
+@cindex hashcode type, for variables
+
+The representation type should be one of @code{boolean}, @code{int},
+@code{hashcode}, @code{double}, or @code{java.lang.String}; or an
+array of one of those (indicated by a @code{[..]} suffix).
+
+@code{hashcode} is intended for unique object identifiers like memory
+addresses (pointers) or the return value of Java's
+@code{Object.hashCode} method.  @code{hashcode} is treated like
+@code{int}, except that the hashcode values are considered uninteresting
+for the purposes of output.  For example, Daikon will print
+@samp{@var{var} has only one value} instead of @samp{@var{var} == 0x38E8A}.
+
+
+@item @code{flags <flags>}
+
+One or more flags may optionally be specified.  Possible values are:
+@itemize
+
+@item @code{is_param}
+
+Indicates that a given variable is a parameter to a procedure.  Some
+procedures reassign parameters --- essentially using them as local
+variables.  Such uses are not relevant to the procedure's external
+specification.  The @code{is_param} flag causes Daikon not to print
+certain invariants, if the variable has been reassigned.
+
+@enumerate
+@item
+Invariants
+that use the parameter variable @code{p} in its post-state form are not
+printed.
+@item
+Invariants that use fields of @code{p} (such as @code{p.x})
+are printed only if @code{p} has not changed.
+@item
+Some immutable
+characteristics, such as the size of arrays and data types, are not
+printed.  (These can change only if @code{p} is changed, but then, @code{p}
+would no longer be interesting.)
+@end enumerate
+
+@item @code{no_dups}
+
+Indicates that a collection can not contain duplicates.
+If it cannot, Daikon does not check for some invariants that only have
+meaning for collections that can contain duplicate elements.
+
+@item @code{not_ordered}
+
+Indicates that the order of a collection does not have meaning.  In
+this case, Daikon does not check for element-wise comparisons between
+it and other collections.
+
+@item @code{nomod}
+
+Indicates that the variable can never be modified.  For example, a
+variable declared @code{static final} in Java.
+
+@item @code{synthetic}
+
+Indicates that the variable was added by the front end and is not
+manifest in the input program.
+
+@item @code{classname}
+
+Indicates that the variable indicates the @code{classname} of its
+enclosing variable.
+
+@item @code{to_string}
+
+Indicates that the variable is the string representation of its
+enclosing variable.
+
+@item @code{non_null}
+
+Indicates that the variable can't take on a null value.  In this
+case, Daikon will not check for the @samp{NonZero} invariant.
+
+@item @code{is_property}
+
+Indicates that the variable is a C# property (set by the Celeriac front
+end).  It is used in output
+formatting to remove the parentheses from a method call.
+
+@item @code{is_enum}
+
+Indicates that the variable is an enumerated type (set by the Celeriac
+front end).  Daikon uses this information to suppress obvious invariants.
+
+@item @code{is_readonly}
+
+Indicates that the variable is read only (set by the Celeriac front
+end).  Daikon uses this information to suppress obvious invariants.
+
+@end itemize
+
+@item @code{comparability <comparability-key>}
+
+The @var{comparability-key} indicates which other variables are
+comparable to this one.  The information specified here might have been
+obtained dynamically, or via
+type-inference-based static analysis, or in some other manner.
+
+A comparability for a non-array type is a signed integer.  Two
+variables at the same program point are considered comparable if both
+integers are the same, or if either integer is negative (that is, a
+negative number means ``comparable to every other variable'').  A
+comparability for an array type contains an integer for each index
+and for the contents; for instance, @samp{8[5]} means that the array
+elements have comparability @samp{8} and the array indices have
+comparability @samp{5}.  Similarly, @samp{5[22][17]} is a comparability for a
+two-dimensional array.  An array comparison succeeds if comparisons over each
+component succeed.
+
+Variables at different program points are never compared to one another.
+Use of the same number at different program points does not indicate any
+relationship between the variables, and a given variable may have a
+different comparability integer at different program points.
+
+As an example, in the following code:
+@example
+int sum(int len, int[] a) @{
+  int sum=0;
+  for (int i=0; i++; i<len)
+    sum += a[i];
+  return sum;
+@}
+@end example
+
+@noindent
+variables @code{i} and @code{len} are comparable to one another (and
+to indices of array @code{a}).  Furthermore, the result is comparable
+to the elements of array @code{a}.  The comparability keys for these
+variables might look like
+@example
+len     - comparability 5
+a       - comparability 8[5]
+return  - comparability 8
+@end example
+
+A comparability entry is required in each variable block.
+
+@item @code{parent <parent-ppt> <relation-id> [<parent-variable>]}
+
+Optionally specifies the parent variable of this variable in the program
+point/variable hierarchy.  The @var{parent-ppt} is the name of the
+parent program point.  The @var{relation-id} must be one of the
+relationship ids specified for this program point.  The
+@var{parent-variable} is the name of this variable's parent in the
+parent program point.  If the names are the same, it can be omitted.
+
+@item @code{constant <value>}
+
+Optionally specifies a constant value for this variable.  If the variable has
+a compile-time constant value that is specified in the declaration, then
+the variable must be omitted from the data trace
+records.
+
+@item @code{function-args <arg1> <arg2> ...}
+
+If this variable is computed as a function of some other variable,
+specifies the arguments to the function; otherwise, the
+@code{function-args} line must be omitted.
+The arguments are specified by their
+external variable name.  Multiple arguments are
+blank separated.  For example
+@example
+function-args a.b this.f1
+@end example
+
+@noindent
+specifies that the function takes two arguments which are @code{a.b} and
+@code{this.f1}.  As with enclosing variables, each of the arguments must
+be defined as variables.
+
+@item @code{min-value <v>}
+
+Optionally specifies the minimum possible value for this variable
+(for instance, due to language-specific restrictions on the type). This
+enables Daikon to suppress invariants that would be ``obvious'' in that
+case, such as @code{var >= v}.
+
+@item @code{max-value <v>}
+
+Optionally specifies the maximum possible value for this variable
+(for instance, due to language-specific restrictions on the type). This
+enables Daikon to suppress invariants that would be ``obvious'' in that
+case, such as @code{var <= v}.
+
+@item @code{min-length <v>}
+
+Optionally specifies the minimum possible length for this variable
+(for instance, due to language-specific restrictions on the type). This
+enables Daikon to suppress invariants that would be ``obvious'' in that
+case, such as @code{size(var) >= v}.
+Note that this item should be added to the @code{@emph{arrayname}[..]} entry
+not the @code{@emph{arrayname}[..]} entry.
+
+@item @code{max-length <v>}
+
+Optionally specifies the maximum possible length for this variable
+(for instance, due to language-specific restrictions on the type). This
+enables Daikon to suppress invariants that would be ``obvious'' in that
+case, such as @code{size(var) <= v}.
+Note that this item should be added to the @code{@emph{arrayname}[..]} entry
+not the @code{@emph{arrayname}[..]} entry.
+
+@item @code{valid-values [<v1> <v2> ... <vN>]}
+
+Optionally specifies all the possible values for this
+variable (for instance, due to language-specific restrictions on the
+type). This enables Daikon to suppress invariants that would be
+``obvious'' in that case, such as @code{v is one of @{v1, v2, ..., vN@}}.
+
+@end itemize
+
+
+@node    Data trace records
+@section Data trace records
+
+@cindex data trace format
+@cindex .dtrace file
+
+A data trace record (also known as a @dfn{sample}) contains run-time value
+information.  Its format is:
+@example
+<program-point-name>
+this_invocation_nonce
+<nonce-string>
+<varname-1>
+<var-value-1>
+<var-modified-1>
+<varname2>
+<var-value-2>
+<var-modified-2>
+...
+@end example
+
+@noindent
+In other words, the sample record contains:
+@itemize @bullet
+@item name of the program point
+
+@item
+optionally, an arbitrary string (a nonce) used to match up procedure
+entries (whose names conventionally end with @code{:::ENTER}) with
+procedure exits (whose names conventionally end with @code{:::EXIT}).
+This is necessary in concurrent systems because there may
+be several invocations of a procedure active at once and they do not
+necessarily follow a stack discipline, being exited in the reverse order of
+entry.  For non-concurrent systems, this nonce is not necessary, and
+both the line @code{this_invocation_nonce} and the nonce value may be
+omitted.
+
+
+
+@item for each variable:
+@itemize @bullet
+@item name
+@item value
+@itemize @bullet
+@item    if an integer: sequence of digits, optionally preceded by a minus sign.
+Boolean values are written as the number 0 (for false) or the number 1
+(for true).  For pointers, the value may be @code{null}.
+@item    if a string: characters surrounded by double-quotes.  Internal
+double-quotes and backslashes are escaped by a backslash.  Newlines and
+carriage returns are represented as @samp{\n} and @samp{\r},
+respectively.
+
+@item    if an array: open bracket (@code{[}), elements separated by
+spaces, close bracket (@code{]}).  (Also, the array name
+should end in @samp{[..]}; use @samp{a[..]} for array contents,
+but @samp{a} for the identity of the array itself.)
+@end itemize
+
+@cindex nonsensical values for variables
+@cindex missing values for variables, see nonsensical values
+
+@c the Daikon code sometimes calls this "missing" rather than "nonsensical".
+The value representation may also be the string @code{nonsensical};
+@pxref{Nonsensical values}.
+A string or array @emph{value} is never @code{null}.  A @emph{reference} to a
+string or array may be @code{null}, in which case the string or array
+value is printed as @code{nonsensical}.
+
+@item modified? (0, 1, or 2).
+@cindex modified bit
+This value is 0 if the variable has not been assigned to since the
+last time this program point was executed, and 1 if the variable has
+been assigned to since then.  It is safe for an implementation to
+always set it to 1.  It is also safe to always set it to 0, because
+Daikon corrects obviously incorrect modification bits (such as 0 for a
+never-before-seen value).
+
+The special value 2 should be used only (and always) when the value
+field is @code{nonsensical}.
+
+@end itemize
+
+The variables should appear in the same order as they did in the
+declaration of the program point, without omissions or additions.
+@end itemize
+
+@cindex nonce, invocation
+@cindex this_invocation_nonce
+
+
+@menu
+* Nonsensical values::
+* Variables that do not appear in trace records::
+@end menu
+
+@node       Nonsensical values
+@subsection Nonsensical values for variables
+
+Some trace variables and derived variables may not have a value because
+the expression that computes it cannot be evaluated.  In such a
+circumstance, the value is said to be nonsensical, it is written in the
+trace file as @code{nonsensical}, and its modified field must be 2.
+Examples include
+@itemize
+@item
+@code{x} when @code{x} is uninitialized or deallocated,
+@item
+@code{x.y} when @code{x} is null (or uninitialized or deallocated)
+@item
+@code{a[i]} when @code{i} is outside the bounds of @code{a} (or
+uninitialized or deallocated, or @code{a} is null, uninitialized, or
+deallocated)
+@end itemize
+
+@noindent
+For trace variables, it is the responsibility of the front end to
+perform a check at run time whenever a variable's value is about to be
+output to the trace, and to output the value @samp{nonsensical}
+(@pxref{Nonsensical values}) rather than crashing the program or
+outputting an uninitialized or meaningless value.  (Determining when an
+expression's value is meaningless is the most challenging part of
+writing an instrumenter for a language like C, since it requires
+tracking memory allocation and initialization.)  For derived variables
+created by Daikon, Daikon does the same thing, setting values to
+@samp{nonsensical} when appropriate.  For controlling Daikon's output in
+the presence of nonsensical values, see the
+@option{daikon.Daikon.guardNulls} configuration option
+(@pxref{General configuration options,,,daikon,Daikon User Manual}).
+
+
+@node       Variables that do not appear in trace records
+@subsection Variables that do not appear in trace records
+
+A trace record should contain exactly the same variables as in the
+corresponding declaration.  There is one exception:  for efficiency,
+compile-time constants (e.g., static final variables in Java) are
+omitted from the trace record, since they would have the same value
+every time.
+
+Furthermore, neither the declarations nor the trace records contain derived
+variables (@pxref{Variable names,,,daikon,Daikon User Manual}).
+
+
+
+@node    Example files
+@section Example files
+
+Here are portions of two files @file{StackArTester.decls} and
+@file{StackArTester.dtrace}, for a Java class that implements a stack of
+integers using an array as the underlying data structure.  You can see
+many more examples by simply running an existing front end on some Java,
+C, or Perl programs and viewing the resulting files.
+
+@menu
+* Example declaration file::
+* Example data trace file::
+@end menu
+
+
+@node       Example declaration file
+@subsection Example declaration file
+
+This is part of the file @file{StackArTester.decls}, a declaration file for
+the @file{StackAr.java} program
+(@pxref{StackAr example,,,daikon,Daikon User Manual}).
+
+@smallexample
+ppt DataStructures.StackAr.push(java.lang.Object):::ENTER
+ppt-type enter
+parent parent DataStructures.StackAr:::OBJECT 1
+variable this
+  var-kind variable
+  dec-type DataStructures.StackAr
+  rep-type hashcode
+  flags is_param nomod
+  comparability 22
+  parent DataStructures.StackAr:::OBJECT 1
+variable this.theArray
+  var-kind field theArray
+  enclosing-var this
+  dec-type java.lang.Object[]
+  rep-type hashcode
+  flags nomod
+  comparability 22
+  parent DataStructures.StackAr:::OBJECT 1
+variable this.theArray.getClass().getName()
+  var-kind function getClass().getName()
+  enclosing-var this.theArray
+  dec-type java.lang.Class
+  rep-type java.lang.String
+  function-args this.theArray
+  flags nomod synthetic classname
+  comparability 22
+  parent DataStructures.StackAr:::OBJECT 1
+variable this.theArray[..]
+  var-kind array
+  enclosing-var this.theArray
+  array 1
+  dec-type java.lang.Object[]
+  rep-type hashcode[]
+  flags nomod
+  comparability 22
+  parent DataStructures.StackAr:::OBJECT 1
+variable this.theArray[..].getClass().getName()
+  var-kind function getClass().getName()
+  enclosing-var this.theArray[..]
+  array 1
+  dec-type java.lang.Class[]
+  rep-type java.lang.String[]
+  function-args this.theArray[]
+  flags nomod synthetic classname
+  comparability 22
+  parent DataStructures.StackAr:::OBJECT 1
+variable this.topOfStack
+  var-kind field topOfStack
+  enclosing-var this
+  dec-type int
+  rep-type int
+  flags nomod
+  comparability 22
+  parent DataStructures.StackAr:::OBJECT 1
+variable DataStructures.StackAr.DEFAULT_CAPACITY
+  var-kind variable
+  dec-type int
+  rep-type int
+  constant 10
+  flags nomod
+  comparability 22
+  parent DataStructures.StackAr:::OBJECT 1
+variable x
+  var-kind variable
+  dec-type java.lang.Object
+  rep-type hashcode
+  flags is_param nomod
+  comparability 22
+variable x.getClass().getName()
+  var-kind function getClass().getName()
+  enclosing-var x
+  dec-type java.lang.Class
+  rep-type java.lang.String
+  function-args x
+  flags nomod synthetic classname
+  comparability 22
+
+ppt DataStructures.StackAr.push(java.lang.Object):::EXIT103
+ppt-type subexit
+parent parent DataStructures.StackAr:::OBJECT 1
+variable this
+  var-kind variable
+  dec-type DataStructures.StackAr
+  rep-type hashcode
+  flags is_param nomod
+  comparability 22
+  parent DataStructures.StackAr:::OBJECT 1
+variable this.theArray
+  var-kind field theArray
+  enclosing-var this
+  dec-type java.lang.Object[]
+  rep-type hashcode
+  flags nomod
+  comparability 22
+  parent DataStructures.StackAr:::OBJECT 1
+variable this.theArray.getClass().getName()
+  var-kind function getClass().getName()
+  enclosing-var this.theArray
+  dec-type java.lang.Class
+  rep-type java.lang.String
+  function-args this.theArray
+  flags nomod synthetic classname
+  comparability 22
+  parent DataStructures.StackAr:::OBJECT 1
+variable this.theArray[..]
+  var-kind array
+  enclosing-var this.theArray
+  array 1
+  dec-type java.lang.Object[]
+  rep-type hashcode[]
+  flags nomod
+  comparability 22
+  parent DataStructures.StackAr:::OBJECT 1
+variable this.theArray[..].getClass().getName()
+  var-kind function getClass().getName()
+  enclosing-var this.theArray[..]
+  array 1
+  dec-type java.lang.Class[]
+  rep-type java.lang.String[]
+  function-args this.theArray[]
+  flags nomod synthetic classname
+  comparability 22
+  parent DataStructures.StackAr:::OBJECT 1
+variable this.topOfStack
+  var-kind field topOfStack
+  enclosing-var this
+  dec-type int
+  rep-type int
+  flags nomod
+  comparability 22
+  parent DataStructures.StackAr:::OBJECT 1
+variable DataStructures.StackAr.DEFAULT_CAPACITY
+  var-kind variable
+  dec-type int
+  rep-type int
+  constant 10
+  flags nomod
+  comparability 22
+  parent DataStructures.StackAr:::OBJECT 1
+variable x
+  var-kind variable
+  dec-type java.lang.Object
+  rep-type hashcode
+  flags is_param nomod
+  comparability 22
+variable x.getClass().getName()
+  var-kind function getClass().getName()
+  enclosing-var x
+  dec-type java.lang.Class
+  rep-type java.lang.String
+  function-args x
+  flags nomod synthetic classname
+  comparability 22
+
+ppt DataStructures.StackAr:::CLASS
+ppt-type class
+variable DataStructures.StackAr.DEFAULT_CAPACITY
+  var-kind variable
+  dec-type int
+  rep-type int
+  constant 10
+  flags nomod
+  comparability 22
+
+ppt DataStructures.StackAr:::OBJECT
+ppt-type object
+parent parent DataStructures.StackAr:::CLASS 1
+variable this
+  var-kind variable
+  dec-type DataStructures.StackAr
+  rep-type hashcode
+  flags is_param nomod
+  comparability 22
+variable this.theArray
+  var-kind field theArray
+  enclosing-var this
+  dec-type java.lang.Object[]
+  rep-type hashcode
+  flags nomod
+  comparability 22
+variable this.theArray.getClass().getName()
+  var-kind function getClass().getName()
+  enclosing-var this.theArray
+  dec-type java.lang.Class
+  rep-type java.lang.String
+  function-args this.theArray
+  flags nomod synthetic classname
+  comparability 22
+variable this.theArray[..]
+  var-kind array
+  enclosing-var this.theArray
+  array 1
+  dec-type java.lang.Object[]
+  rep-type hashcode[]
+  flags nomod
+  comparability 22
+variable this.theArray[..].getClass().getName()
+  var-kind function getClass().getName()
+  enclosing-var this.theArray[..]
+  array 1
+  dec-type java.lang.Class[]
+  rep-type java.lang.String[]
+  function-args this.theArray[]
+  flags nomod synthetic classname
+  comparability 22
+variable this.topOfStack
+  var-kind field topOfStack
+  enclosing-var this
+  dec-type int
+  rep-type int
+  flags nomod
+  comparability 22
+variable DataStructures.StackAr.DEFAULT_CAPACITY
+  var-kind variable
+  dec-type int
+  rep-type int
+  constant 10
+  flags nomod
+  comparability 22
+  parent DataStructures.StackAr:::CLASS 1
+@end smallexample
+
+
+@node       Example data trace file
+@subsection Example data trace file
+
+This is part of file @file{StackArTester.dtrace}, which you can create by
+running the instrumented @file{StackAr.java} program
+(@pxref{StackAr example,,,daikon,Daikon User Manual}).
+This excerpt contains only the
+first two calls to
+@code{push} and the first return from @code{push}, along with the
+associated object program point records; omitted records are indicated
+by ellipses.
+
+
+@smallexample
+
+...
+
+DataStructures.StackAr.push(java.lang.Object):::ENTER
+this_invocation_nonce
+104
+this
+812272602
+1
+this.theArray
+312077835
+1
+this.theArray.getClass().getName()
+"java.lang.Object[]"
+1
+this.theArray[..]
+[null]
+1
+this.theArray[..].getClass().getName()
+[null]
+1
+this.topOfStack
+-1
+1
+x
+1367164551
+1
+x.getClass().getName()
+"DataStructures.MyInteger"
+1
+
+...
+
+DataStructures.StackAr.push(java.lang.Object):::EXIT103
+this_invocation_nonce
+104
+this
+812272602
+1
+this.theArray
+312077835
+1
+this.theArray.getClass().getName()
+"java.lang.Object[]"
+1
+this.theArray[..]
+[1367164551]
+1
+this.theArray[..].getClass().getName()
+["DataStructures.MyInteger"]
+1
+this.topOfStack
+0
+1
+x
+1367164551
+1
+x.getClass().getName()
+"DataStructures.MyInteger"
+1
+
+...
+
+DataStructures.StackAr.push(java.lang.Object):::ENTER
+this_invocation_nonce
+159
+this
+2007069404
+1
+this.theArray
+142345952
+1
+this.theArray.getClass().getName()
+"java.lang.Object[]"
+1
+this.theArray[..]
+[null]
+1
+this.theArray[..].getClass().getName()
+[null]
+1
+this.topOfStack
+-1
+1
+x
+111632506
+1
+x.getClass().getName()
+"DataStructures.MyInteger"
+1
+
+...
+
+DataStructures.StackAr.push(java.lang.Object):::EXIT103
+this_invocation_nonce
+159
+this
+2007069404
+1
+this.theArray
+142345952
+1
+this.theArray.getClass().getName()
+"java.lang.Object[]"
+1
+this.theArray[..]
+[111632506]
+1
+this.theArray[..].getClass().getName()
+["DataStructures.MyInteger"]
+1
+this.topOfStack
+0
+1
+x
+111632506
+1
+x.getClass().getName()
+"DataStructures.MyInteger"
+1
+
+...
+
+@end smallexample
+
+
+@node    Version 1 Declarations
+@section Version 1 Declarations
+
+@cindex @file{.decls} file (version 1)
+
+This section describes the original version (1.0) of declaration
+records.  These are now obsolete and should not be used.
+
+A declarations file can contain program point declarations,
+@code{VarComparability} declarations, and @code{ListImplementors declarations}.
+
+@menu
+* V1 Program point declarations::
+* V1 pptname format::
+* V1 VarComparability declaration::
+* V1 ListImplementors declaration::
+@end menu
+
+@node       V1 Program point declarations
+@subsection V1 Program point declarations
+
+The format of a program point declaration is:
+@example
+DECLARE
+program-point-name
+varname1
+declared-type1 [# auxiliary-information1]
+representation-type1 [= constant-value1]
+comparable1
+varname2
+declared-type2 [# auxiliary-information2]
+representation-type2 [= constant-value2]
+comparable2
+...
+@end example
+
+@noindent
+Program point information includes:
+@itemize @bullet
+@item
+name (@dfn{tag}) of this program point, an arbitrary string containing no
+tab or newline characters.  This name contains information such as the
+class name or method name; what information is contained depends on
+which instrumenter is being used.  @xref{V1 pptname format}, for a full
+specification of the naming format.
+
+
+@item
+for each variable:
+@itemize @bullet
+@item
+name: a string containing no tabs or newlines.
+@xref{Variable names,,,daikon,Daikon User Manual}.
+
+@item
+declared type: this is what the programmer used in the declaration of
+the variable.  Array types must be suffixed by the proper number of
+@samp{[]} to indicate their dimensionality.  Names for standard types
+should use Java's names (e.g., @code{int}, @code{boolean}, etc.), but names for
+user-defined or language-specific types can be arbitrary strings.
+
+@item
+auxiliary information: optionally, Daikon can be given information
+about the meaning of the variable to help it better interpret the
+values it later sees.  Information is provided as a comma-separated
+list of items, with each item in the form of @samp{key = value}.  Unrecognized
+keys are silently ignored.  All values are
+either @samp{true} or @samp{false}.  Mainly, this information is used for
+collections, which are presented to Daikon as arrays.  Valid keys are:
+
+@table @code
+
+@item hasDuplicates
+Whether a collection can contain duplicates.  If it
+cannot, Daikon does not check for some invariants that only have
+meaning for collections that can contain duplicate elements.
+
+@item hasOrder
+Whether order has meaning for a collection.  If order does
+not have meaning in a collection, then Daikon does not check for
+element-wise comparisons between it and other collections.
+
+@item hasNull
+Whether zero has the special meaning null for the variable or
+collection.  If it does, then Daikon checks for whether a value or the
+elements in a collection are null.
+
+@item nullTerminated
+Whether a collection has a value (usually null) that
+ends its representation.  If it does, then Daikon looks at the
+collection's size and at the collection's size-1 as ``interesting''
+values.  If it does not, then Daikon only looks at the collection's
+size.
+
+@item isParam
+Whether a given variable is a parameter to a method.  If a
+variable is a parameter, Daikon avoids printing some information that
+would be considered uninteresting for parameters.  First, invariants
+that use the parameter variable @code{p} in its post-state form are not
+printed.  Second, invariants that use fields of @code{p} (such as @code{p.x})
+are printed only if @code{p} has not changed.  Lastly, some immutable
+characteristics, such as the size of arrays and data types are not
+printed (both can be changed if @code{p} is changed, but then, @code{p}
+would no longer be interesting).
+
+@end table
+
+@item
+representation type:  this describes what will appear in the data
+trace file.  For instance, the declared type might be @code{char[]} but
+the representation type might be @code{java.lang.String}.  Or, the declared
+type might be @code{Object} but the representation type might be
+@code{hashcode}, if the address of the object is written to the data trace
+file.
+
+The representation type should be one of @code{boolean}, @code{int},
+@code{hashcode}, @code{double}, or @code{java.lang.String}; or an
+array of one of those (indicated by a @code{[]} suffix, as in Java).
+Hashcodes are treated like integers, except that their actual values
+are considered uninteresting for the purposes of output; they are
+intended for unique object identifiers like memory addresses or the
+return value of Java's @code{Object.hashCode} method.
+
+The representation type may optionally be followed by an equals
+sign and a value; in that case, the variable is known to have a
+compile-time constant value and should be omitted from the data
+trace file.
+@end itemize
+@item
+@cindex comparability, for variables (@file{.decls} format version 1)
+@cindex variable comparability (@file{.decls} format version 1)
+comparable variables.  This information indicates
+which other variables are comparable to this one.
+
+The point of comparability is that Daikon should not compare unrelated
+quantities.  For example, each person's height in centimeters may always
+be less than their birth year, but it is not helpful for Daikon to
+output @samp{height < birthyear}, because the two variables are measuring
+incomparable quantities.  (In this case, the variables use different
+units of measurement.)
+
+Variable comparability information helps Daikon to avoid computing
+information over unrelated variables.  This saves time and (more
+importantly) improves the quality of Daikon's output.  For more details,
+see the paper
+@ifhtml
+@uref{http://homes.cs.washington.edu/~mernst/pubs/invariants-relevance-icse2000-abstract.html,
+, ``Quickly detecting relevant program invariants''}.
+@end ifhtml
+@ifnothtml
+@uref{http://homes.cs.washington.edu/~mernst/pubs/invariants-relevance-icse2000-abstract.html,
+  ``Quickly detecting relevant program invariants''}.
+@end ifnothtml
+
+Variable comparability information may be obtained dynamically
+(@pxref{Dynamic abstract type inference (DynComp),,,daikon,Daikon User Manual}), via
+type-inference based analysis, or in some other manner.  In any event,
+Daikon reads it from the variable declarations.
+
+A comparability for a non-array type is a signed integer.  Two variables
+at the same program point
+are considered comparable if both integers are the same, @emph{or} if either
+integer is negative.
+A comparability for an array type must contain an
+integer for each index and for the contents; for instance, @samp{5[22][17]}
+for a two-dimensional array.  Comparisons succeed if comparisons over
+each component succeed.
+
+Regardless of comparability, variables at different program points are
+never compared to one another.  Use of the same comparability integer at
+different program points does not indicate any
+relationship between the variables, and a given variable may have a
+different comparability integer at different program points.
+
+As an example, in the following code:
+@example
+int sum(int len, int[] a) @{
+  int sum=0;
+  for (int i=0; i++; i<len)
+    sum += a[i];
+  return sum;
+@}
+@end example
+variables @code{i} and @code{len} are comparable to one another (and
+to indices of array @code{a}).  Furthermore, the result is comparable
+to the elements of array @code{a}.  A declaration file for these
+variables might look like
+@example
+len
+int
+int
+5
+a
+int[]
+int[]
+8[5]
+return
+int
+int
+8
+@end example
+
+@end itemize
+
+@c Future enhancements may include:
+@c @itemize @bullet
+@c @item
+@c permit variables to be omitted if they haven't changed (but always
+@c outputting the bit permits us to write a sanity checker)
+@c @item
+@c permit variables to appear in any order (not sure this is so worthwhile)
+@c @item
+@c specify which @file{.decl} files should be used (including their pathnames
+@c and/or MD5 hashes)
+@c @end itemize
+
+@node       V1 pptname format
+@subsection Program point name format specification
+
+Instrumenting code creates a @file{.decls} file that contains program
+point names such as:
+
+@example
+DataStructures.StackAr.push(java.lang.Object):::ENTER
+DataStructures.StackAr.push(java.lang.Object):::EXIT99
+PolyCalc.RatNum.RatNum(int, int):::ENTER
+PolyCalc.RatNum.RatNum(int, int):::EXIT55
+PolyCalc.RatNum.RatNum(int, int):::EXIT67
+@end example
+
+This section describes the format of these program point names.  Someone
+writing an instrumenter for a new language must be sure to follow this
+format specification.
+
+A program point name is a string with no tabs or newlines in it.  The basic
+format is @samp{@var{topLevel}.@var{bottomLevel}:::@var{pptInfo}}.
+For the first example given above, the top level of the hierarchy would
+be @code{DataStructures.StackAr}, the bottom level would be
+@code{push(java.lang.Object)}, and the
+program point information would be @code{ENTER}.
+
+@var{topLevel} may contain any number of periods (@samp{.}). @var{bottomLevel}
+and @var{pptInfo} may not contain any periods.  The string @samp{:::} may only
+appear once.
+
+@var{topLevel} and @var{pptInfo} are required (i.e., they must be non-empty),
+as are the period to the right of @var{topLevel} and the colons to the
+left of @var{pptInfo}.  However, @var{bottomLevel} is optional.
+
+By convention, for Java @var{topLevel} consists of the class name, and
+@var{bottomLevel} consists of the method name and method signature.
+
+For C, @var{topLevel} consists of a filename (or a single period for
+global functions), and @var{bottomLevel}
+could consist of a function name and signature.
+More precisely, names of C program points follow these conventions:
+
+@itemize @bullet
+@item
+Names of program points for file-static functions are prefixed with the name
+of the source file, with @samp{.} characters mapped to @samp{_},
+followed by a @samp{.}.
+
+@item Names of program points for
+file-scope functions with external linkage are prefixed with @samp{..}.
+For example, a global function program point might be named
+@samp{..main():::ENTER}., the first period denoting that it is global in
+scope and the second denoting the separator between the @var{toplevel}
+and @var{bottomlevel} parts of the name.
+
+@item
+Names of C++ functions that are class or namespace members are prefixed
+with the name(s) of their classes or namespaces, with the C++ @samp{::}
+syntax mapped onto the Java @samp{.} syntax used by Daikon.
+@end itemize
+
+For an Input Output Automaton, @var{topLevel} consists of an Automaton name and
+@var{bottomLevel} consists of information for a transition state.
+
+By convention, the entry and exit points for a function have names of
+a special form so that they can be associated with one another.
+(Currently, those names end with @code{:::ENTER} and @code{:::EXIT}.)  This
+convention permits Daikon to generate @nospellcheck{pre-state} variables
+(@pxref{Variable names,,,daikon,Daikon User Manual}) automatically at
+procedure exit points, so
+front ends need not output them explicitly.  When there
+are multiple exit points, then each one should be suffixed by a number
+(such as a line number, for example, @code{foo::EXIT22}).  Daikon produces
+the main (non-numbered) @code{:::EXIT} point automatically.  All the
+numbered exits should contain the same set of variables; in general,
+this means that local variables are not included at exit points.
+Daikon requires that declarations for @code{:::ENTER} program
+points appear before any declarations for matching @code{:::EXIT} program
+points.
+
+Another convention is to have another program point whose
+@var{bottomLevel} is empty and whose @var{pptInfo} is  @code{OBJECT}:
+for example, @code{StackAr:::OBJECT}.  This contains the
+representation invariant (sometimes called the object invariant) of a
+class.  This program point is created automatically by Daikon; it need
+not appear in a trace file.
+
+@c This program point is not created automatically by Daikon, because
+@c there isn't a way to know whether a particular method is a private
+@c helper method or not --- that is, whether the representation
+@c invariants should hold on entry to and exit from it.
+
+
+
+@node       V1 VarComparability declaration
+@subsection V1 VarComparability declaration
+
+There is a special @code{VarComparability} declaration that controls how
+the comparability field in program point declarations is interpreted.
+The default @code{VarComparability} is @code{implicit}, which means
+ordinary comparability as described in @ref{Program point declarations}.
+(The name @code{implicit} is retained for historical reasons.)
+You can override it as
+follows:
+@example
+VarComparability
+none
+@end example
+
+@noindent
+As with all records in Daikon input files, a
+blank line is required between this record and the next one.
+
+@node       V1 ListImplementors declaration
+@subsection V1 ListImplementors declaration
+
+This declaration indicates classes that implement the
+@code{java.util.List} interface, and should be treated as sequences
+for the purposes of invariant detection.  The syntax is as follows:
+
+@example
+ListImplementors
+<classname1>
+<classname2>
+...
+@end example
+
+@noindent
+Each @code{classname} is in Java format (for example, @file{java.util.LinkedList}).
+
+The @option{--list_type} command-line option to Daikon can also be used to
+specify classes that implement lists; @pxref{Options to control invariant
+detection,,,daikon,Daikon User Manual}.
+
+
+@node       General Index
+@unnumbered General Index
+
+@printindex cp
+
+
+@bye
+
+
+@c  LocalWords:  texinfo setfilename settitle daikonemail setchapternewpage sp
+@c  LocalWords:  hboxes finalout titlepage titlefont daikon eps pdf txt png jpg
+@c  LocalWords:  vskip pt filll html img src alt ifnothtml dir ifnottex ifinfo
+@c  LocalWords:  ifhtml detailmenu uref cindex java jpp cpp javac jikes proto
+@c  LocalWords:  invs samp SingleScalar TwoScalar abs ThreeScalar TwoSequence
+@c  LocalWords:  SingleSequence SequenceScalar noindent Daikon's InvName ppt ok
+@c  LocalWords:  PptSlice dyn dkconfig VarInfo computeConfidence num repr esc
+@c  LocalWords:  DAIKONDIR IOA JML var newtype OutputFormat PrintInvariants int
+@c  LocalWords:  decls dtrace squar emph NISuppressor NISuppression suppressee
+@c  LocalWords:  NISuppressee NISuppressionSet ni IntGreaterEqual eq IntEqual
+@c  LocalWords:  lt IntLessThan makeEmpty LessThan GreaterThan orig theArray TR
+@c  LocalWords:  FloatLessThan DisjSets SequenceScalarSubscriptFactory pxref co
+@c  LocalWords:  Javadoc Varinfo logOn getClass foo vars isLoggable logDetail
+@c  LocalWords:  msg showTrackback args webserver addInvariant href tex m4
+@c  LocalWords:  inv PptTopLevel FileIO php isObviousStatically LCS Nimmer's cp
+@c  LocalWords:  isObviousDynamically Toh Win's nohierarchy noequality diffs pl
+@c  LocalWords:  diff InvariantFormatTest classpath ioa jml aString valueOf val
+@c  LocalWords:  deffn SampleTester decl subsubsection arg iff testsubject ajax
+@c  LocalWords:  jtb cvs checkin smallexample checkins printindex Dataflow gcc
+@c  LocalWords:  convertcsv Mangel Wurzel malloc TerminationMessage un Mozilla FSE cd
+@c  LocalWords:  dataflow czf mernst pag calloc Mbytes Miryung ifnotinfo env di
+@c  LocalWords:  bashrc cshrc DAIKONCLASS makeinfo InvariantStatus itemx vis su
+@c  LocalWords:  ObviousFilter StackAr DataStructures structs StackArTester Ren
+@c  LocalWords:  INST Xiaoxia regex printf DiscardInfo instanceof UpperBound Xu
+@c  LocalWords:  DiscardCode Kapfhammer GB ListImplementors pptname rt toc
+@c  LocalWords:  VarComparability instrumenter struct Hatcliff Sinha Vibha xref
+@c  LocalWords:  dfepl uninstrumented classname subexit inline dec hashcode len
+@c  LocalWords:  hashCode param dups NonZero rel varname topOfStack MyInteger
+@c  LocalWords:  hasDuplicates hasOrder hasNull nullTerminated isParam DynComp
+@c  LocalWords:  Hashcodes birthyear topLevel bottomLevel pptInfo toplevel conf
+@c  LocalWords:  bottomlevel namespace namespaces startup Makefiles toolset oro
+@c  LocalWords:  boolean deallocations suppressions substring traceback Emacs
+@c  LocalWords:  filename tracebacks inferencing ExistingProjectIntoWorkspace
+@c  LocalWords:  screenshot popup junit jakarta getopt breakpoint TODO url Baz
+@c  LocalWords:  daikonuser mangold hsize normaloffset nospellcheck ifset
+@c  LocalWords:  paragraphindent firstparagraphindent codequotebacktick v1
+@c  LocalWords:  ifclear evenheading thispage thischaptername oddheading
+@c  LocalWords:  thischapternum thissectionnum thissectionname sudo jdk v2
+@c  LocalWords:  everyfooting exampleindent openjdk ctags graphviz netpbm
+@c  LocalWords:  texlive Makefile automake autoconf binutils dev dfn AMD64
+@c  LocalWords:  UnaryInvariant BinaryInvariant TernaryInvariant EM64T www
+@c  LocalWords:  runtime var1 PptSlice1 over1 config EXIT99 var2 var3 val1
+@c  LocalWords:  EXITNN val2 arg1 arg2 EXIT35 plse fjalar myfjalar ln nsf
+@c  LocalWords:  chmod og rwx BIBDIR CHECKERFRAMEWORK pipefail wget
+@c  LocalWords:  readelf DAIKONVERSION xargs codespecs kvasir repo
+@c  LocalWords:  untracked

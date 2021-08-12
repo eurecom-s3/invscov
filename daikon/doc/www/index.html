@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head><link rel="icon" href="daikon-favicon.png" type="image/png"/>
+  <title>The Daikon dynamic invariant detector</title>
+</head>
+<body>
+
+<p>
+<img src="daikon-logo.gif" alt="Daikon logo" />
+</p>
+
+<p>
+[ <b>Home</b>
+| <a href="faq.html">FAQ</a>
+| <a href="download/">Download</a>
+| <a href="download/doc/">Documentation</a>
+| <a href="pubs/">Publications</a>
+| <a href="mailing-lists.html">Mailing lists</a>
+]
+</p>
+
+<hr />
+
+<h1>The Daikon invariant detector</h1>
+
+<!-- =================================================================
+ DO NOT EDIT this text directly.  It is lifted (by hand) from
+ $DAIKONDIR/doc/daikon.html, which is in turn generated from
+ $DAIKONDIR/doc/daikon.texinfo.
+
+ When re-inserting this text, prefix ``href="#'' by
+ "http://plse.cs.washington.edu/daikon/download/doc/daikon.html#"
+ ================================================================= -->
+
+<p><a href="http://plse.cs.washington.edu/daikon/">Daikon</a> is an implementation of
+dynamic detection of likely invariants; that is, the Daikon invariant
+detector reports likely program invariants.  An invariant is a property
+that holds at a certain point or points in a program; these are often
+seen in assert statements, documentation, and formal specifications.
+Invariants can be useful in program understanding and a host of other
+applications.  Examples include &ldquo;x.field &gt; abs(y)&rdquo;; &ldquo;y = 2*x+3&rdquo;;
+&ldquo;array a is sorted&rdquo;; &ldquo;for all list objects lst, lst.next.prev =
+lst&rdquo;; &ldquo;for all treenode objects n, n.left.value &lt; n.right.value&rdquo;; &ldquo;p
+!= null =&gt; p.content in myArray&rdquo;; and many more.  You can extend Daikon
+to add new properties (see <a href="download/doc/daikon.html#Enhancing-Daikon-output">Enhancing Daikon output</a>, or
+see <a href="download/doc/developer.html#New-invariants">New invariants</a> in <cite>Daikon Developer Manual</cite>).
+</p>
+<p>Dynamic invariant detection runs a program, observes the values that the
+program computes, and then reports properties that were true over the
+observed executions.
+Daikon can detect properties in C, C++, C#, Eiffel, F#, Java, Perl, and
+Visual Basic programs;
+in spreadsheet files; and in other data sources.  (Dynamic invariant
+detection is a machine learning technique that can be applied to
+arbitrary data.)  It is easy to extend Daikon to other applications.
+</p>
+<p>Daikon is freely available for download from
+<a href="http://plse.cs.washington.edu/daikon/download/">http://plse.cs.washington.edu/daikon/download</a>.
+The distribution includes both source code and
+<a href="http://plse.cs.washington.edu/daikon/download/doc/">documentation</a>,
+and Daikon&rsquo;s license permits unrestricted use (see <a href="download/doc/daikon.html#License">License</a>).  Many
+researchers and practitioners have used Daikon; those uses, and Daikon
+itself, are described in various
+<a href="http://plse.cs.washington.edu/daikon/pubs/">publications</a>.
+</p>
+
+<hr />
+
+<p>
+[ <b>Home</b>
+| <a href="faq.html">FAQ</a>
+| <a href="download/">Download</a>
+| <a href="download/doc/">Documentation</a>
+| <a href="pubs/">Publications</a>
+| <a href="mailing-lists.html">Mailing lists</a>
+]
+</p>
+
+<hr />
+
+<a href="http://www.cs.washington.edu/research/plse">UW Program Languages and Software Engineering Group</a>
+
+</body>
+</html>
+
+<!--  LocalWords:  treenode myArray IOA PathFinder abs lst
+ -->

@@ -1,0 +1,326 @@
+Daikon todo list.
+(Also see other files in this directory.)
+
+Projects
+
+  - conditional invariants:  Make the splitting code work for more than 2
+    children.
+
+  - NIS enhancements
+      - Optimize merging and checking falsified antecedents
+      - support multiple levels (and binary suppressees)
+      - support sample-dependent antecedents
+      - Gather statistics on the power of the new invariants as antecedents.
+        Remove invariants that are not justified
+      - Support some subset of derived variable suppressions.
+      - Merge data from antecedents
+
+===========================================================================
+
+Documentation
+
+  - When running Javadoc on the Daikon source code, the JDK8 version of
+    javadoc produces hundreds of warnings. A primary cause in that
+    method @param and @return tags are now required.  To correct them all at
+    once would be too large a task with too little concrete benefit.
+    Whenever we edit a file/method for some other reason, we should ensure
+    that it has complete javadoc tags.  A "changed warnings" tool could
+    help with this.
+
+===========================================================================
+
+Front ends
+
+  - Add support for loop invariants.
+
+===========================================================================
+
+External tools
+
+  - DynComp robustness
+
+      DynComp/Java and DynComp/C have been successfully used on a
+      number of realistic programs.  Howerver, both versions of
+      DynComp requires extensive instrumentation of the application
+      program in order to track all value flow in the program.  Both
+      should be tested on a wider variety of programs.  Any bugs encountered
+      should be fixed and the test suites enhanced to cover more cases.
+
+  - Mechanism to check invariants found by Daikon in programs (ie, add
+    as assertions or some other mechanism).  Optimally it would be easy
+    to read and edit.  Also it would be easy to update if new invariants
+    are calculated
+
+    (c.f. JML's RAC)
+
+    From our project file:
+
+      This project is, in brief, about writing a better assertion
+      checker for Java.
+
+      Most procedures have preconditions and postconditions.  Checking
+      <em>preconditions</em> at run time is easy: just write an assert
+      statement at the beginning of the routine.  Checking
+      <em>postconditions</em> is more troublesome: one must give a
+      name to the return value and insert an assertion at every exit
+      point, including return statements and exceptional exits such as
+      those caused by throwing an exception.  Furthermore, in this
+      approach the postcondition is not documented at the beginning of
+      the procedure.  <em>Object invariants</em> are similarly
+      problematic: they must be duplicated for every procedure entry
+      and exit in a class.
+
+      Run-time checking of specifications seems deceptively easy, but
+      has proved a difficult task.  We would like to perform the
+      research and implementation that will enable creation of a
+      robust specification (pre- and post-condition, and object
+      invariant) checker &mdash; both for use in our own programming,
+      and because it will enable interesting additional research.
+
+  - Compare invariants calculated for different versions of an application
+    and see if differences can be correlated with regression errors.
+
+      - Dynamically detected invariants provide useful information but the
+        quantity of such invariants can make it difficult to uncover the
+        important items
+
+      - Regression errors (errors introduced into previously working
+        functionality by new features or other bug fixes) are a
+        significant problem.  Breaking an existing feature is very likely
+        to have serious ramifications for users.
+
+      - Analyzing only those invariants that have changed between
+        two versions of a system may allow regression errors to be uncovered.
+        The two versions could range from two separate releases to the
+        differences between the current configuration management version and
+        an engineers checkout.
+
+  - Inference of types:  nullness, mutability, typestate
+
+===========================================================================
+
+Performance/scalability
+
+  - implement per-call-site sampling.  This may help scalability dramatically.
+
+  - Optimize derived variables
+
+      - Apply equality sets, constants, etc to the creation of derived
+        variables.
+      - Optionally limit derived variables to expressions seen in the
+        program.
+
+===========================================================================
+
+Algorithms
+
+  - Infer some properties of multithreaded code, e.g., which variables are
+    shared or which are protected by what locks, etc.
+
+  - Statistically likely, but not entirely true, properties -- good for finding
+    bugs or corner cases.  Related to splitting, or not?
+
+  - Reduce spurious (obvious and/or uninteresting) invariants in Daikon.
+
+      Daikon's output is can be too voluminous to be useful to programmers
+      in understanding a program.  Some mechanism to reduce the number
+      of invariants to a more manageable number could make Daikon
+      significantly more useful.  Some Java specific approaches are:
+
+        - Remove obvious invariants over constants
+        - Take advantage of Java type information (generic and otherwise)
+        - Only include variables referenced in a routine (and the routines
+          it calls)
+        - Analyze output (with and without DynComp) on a number of real
+          world programs.
+
+  - Sequence/array invariant redesign
+
+      Redesign invariants so that only scalar invariants need to be
+      implemented directly.  All invariants over sequences
+      (element-wise, pair-wise, and sequence invariants) would be
+      automatically created from the scalar versions.  Element-wise,
+      pair-wise, and sequence invariants would be extended to ternary
+      invariants.
+
+      Change the input dtrace record format so that arrays of classes
+      or structs are represented directly in the input rather than
+      creating a separate array for each class/structure member.  This
+      would simplify the front end and also allow invariants over nested
+      arrays and more complex data structures.
+
+      Fix array handling so that there can be nonsensical elements in arrays.
+
+  - Extend non-instantiating suppressions
+
+    There are a number of limitations to non-instantiating suppressions.
+    The following is taken from the NIS presentation.  It has perhaps
+    too much detail, but does provide specifics.
+
+      - Suppressions are limited to one level
+        - Invariants with suppressions cannot be antecedents
+        - Could be resolved by recursively processing suppressions
+        - Suppressions could be recursively expanded at definition time
+            For example, (x &ge; y) could be replaced by (x = y) &or; (x > y)
+
+      - Suppressions can only use stateless invariants
+        - New stateless invariants augment existing sample dependent invariants
+            - x = 1 rather than OneOf
+            - x >= 0 rather than LowerBound
+        - Requiring new invariants is not optimal
+            - Memory is required to store the new invariants
+            - Duplicate invariants are confusing
+
+      Problems with using sample dependent invariants
+        - Antecedent definition is more complex and requires state information
+        - Determining when an antecedent is falsified is more complex
+            - Falsification information is needed to determine if the
+              last valid suppression was removed in a single pass
+            - There is no state in a weakened invariant to indicate what
+              has changed
+            - Multiple antecedents can be falsified based on a single
+              weakened invariant - (x = 3) invalidates (x = 0) and (x = 1)
+        - Checking suppressions before and after each sample
+          rather than using a single pass could resolve this
+
+      Suppressions can only use suppressee variables
+        - All sets of variables that include the falsified
+          antecedent must be considered
+        - More difficult and expensive to determine the relationship
+          with derived variables
+        - Consider (x[] = y[]) && (i = j) --> x[i] = y[j]
+            - (x[] = y[]) is falsified
+            - All variables derived from x[] and y[] must be considered
+        - Case by case solutions should be straightforward
+        - A general solution is less obvious
+
+      - Suppression checking is expensive
+          - All variable sets that include each falsified antecedent
+            must be considered
+          - The only shortcut occurs when the suppression is still valid
+            (processing can stop on the first valid suppression)
+          - Merging is particularly expensive, because all possible
+            suppressions over all sets of variables must be considered
+          - Iterating over possible antecedents rather than possible
+            variable sets may be a solution
+
+      - Suppressions can't merge data from antecedents
+          - The linear ternary optimization requires the internal state
+            from linear binary and the constant
+          - Antecedent invariants could be passed to an invariant
+            specific setup routine
+          - If any of the involved variables are sometimes missing, this
+            is not necessarily sound
+          - The current implementation uses dynamic constants which
+            are always present, and does not suffer from this problem
+
+  - Temporal properties
+
+===========================================================================
+
+PPT hierarchy
+
+  - Add subclasses and interfaces to the PPT hierarchy
+
+      Currently the hierarchy only covers the relationship between
+      method pre- and post-conditions and methods with the class the
+      contains them.  Extending the hierarchy to include subclasses
+      and interfaces would provide more interesting invariants (e.g.,
+      interface invariants) and refine the results.
+
+  - Add exception exit points to the ppt hierarchy.  This would allow us
+    to calculate invariants that were specific to exceptions (perhaps by
+    type) and to non-exception execution.
+
+      - Daikon currently supports a program point hierarchy.  Invariants
+        are dynamically determined at the leaves of the hierarchy (eg,
+        exit program points).  Higher points (such as classes) are
+        calulated by merging the invariants from each child (an invariant
+        must be true at each child in order to be true at the parent).
+
+      - This approach both optimizes run time (by only processing the data
+        at the leaves) and improves output (by not replicating invariants
+        true at a parent at each child).
+
+      - Exception exits are not currently included (data from an exception
+        exit is discarded)
+
+      - Exceptional exits could be added, forming a tree similar to what
+        is shown below.
+
+                        all exits
+                        ---------
+                exception-exit  normal-exit
+
+      The biggest issue is defining the program point hierarchy; once
+      that is done, the implementation is more straightforward.
+      File todo-exception-ppt.txt contains a proposal by
+      Mike and a counter-proposal by Jeff.  Neither seems right to me!
+
+  - better support for splitting (more than two splits, additional automatic
+    splits, etc)
+
+      From our project file:
+
+      A conditional invariant, also called an "implication", is true
+      only some of the time rather than always; for instance, "if p !=
+      null then *p > x".  ("*p > x" is not unconditionally true, but is
+      only checked when "p != null" is true.)  Currently, the predicates
+      must be selected before Daikon runs -- currently, there is a
+      predefined set, a static analysis of the program text adds more,
+      and users can specify additional ones manually.  Two key
+      improvements should be made: new strategies for choosing
+      predicates should be implemented, and the system should be made
+      capable of selecting new predicates at runtime rather than
+      selecting them a priori.  Another improvement would be
+      finding ways to combine sets of predicates without suffering
+      exponential blowup.
+
+    The system is also currently limited to only two children.  Support for
+    more than two children would allow more interesting implications to
+    be found.
+
+------------------------------------------------
+
+Text from DSD paper:
+
+Therefore, we extended Daikon so that all behaviors observed for a subclass
+correctly influence the invariants of the superclass and vice versa. This
+change was crucial in getting invariants of sufficient consistency for
+ESC/Java to process automatically -- otherwise we experienced contradictions
+in our experiments that prevented further automatic reasoning. The change
+is not directly related to the integration of Daikon and CnC, however. It
+is an independent enhancement of Daikon, valid for any use of the inferred
+invariants. We are in the process of implementing this enhancement directly
+on Daikon. We describe in a separate paper [10] the exact algorithm for
+computing the invariants so they are consistent with the observed behaviors
+and as general as possible, while satisfying behavioral subtyping.
+
+
+
+Christoph Csallner notes two problems with Daikon's output:
+
+  The current Daikon implementation does not produce invariants for
+  interfaces. It also emits conflicting postconditions in case a method and
+  the one it overrides are called with similar input values but produce
+  different output values. Contradicting postconditions violate JML
+  semantics and throw off tools like ESC/Java2.
+
+A reasonable approach would be to enhance the program point hierarchy.  One
+could produce interface invariants by creating a program point representing
+each method in the interface, and making the program point a parent (in the
+hierarchy) of each implementation of it.
+
+For overriding methods, one could add a hierarchy relation between the two
+versions of the method.  (This slightly changes the definition of the
+hierarchy, but that change might well be desirable.)  Alternately (but
+perhaps less desirably), one could apply the same technique as for
+interfaces:  for each method, add a new program point, and add a Daikon
+hierarchy relationship from it to any (overriding) definition.
+
+His paper says:
+
+  Executions of the overriding method do not affect at all the invariants
+  of the overridden method and vice versa.
+
+------------------------------------------------

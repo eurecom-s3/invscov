@@ -1,0 +1,12 @@
+This directory contains documentation for the Daikon invariant detector,
+Daikon version 5.8.3, released May 4, 2020.
+
+See file
+  index.html
+for a list of the documentation available in this directory.
+
+Javadoc for the Daikon implementation appears in directory ../java/api/.
+
+Note that version number at the top of this file, as well as the contents
+of the file VERSION, contain the current active version number of the Daikon
+system.  Most often it is one greater than the last distributed release.

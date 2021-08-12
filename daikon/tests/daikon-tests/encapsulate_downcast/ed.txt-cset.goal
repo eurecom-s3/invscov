@@ -1,0 +1,108 @@
+
+Variable sets for misc.EncapsulateDowncast.<init>() enter
+Variable sets for misc.EncapsulateDowncast.<init>() exit
+  [1] [Field misc.EncapsulateDowncast.CASES]
+  [1] [Field misc.EncapsulateDowncast.SEED]
+  [1] [Field misc.EncapsulateDowncast.random]
+  [1] [Field misc.EncapsulateDowncast.random2]
+  [1] [this]
+
+Variable sets for misc.EncapsulateDowncast.showLastPerson(java.util.Vector list) enter
+  [1] [Parameter list]
+  [1] [List list[..]]
+  [1] [Class of list[..]]
+  [1] [Field misc.EncapsulateDowncast.CASES]
+  [1] [Field misc.EncapsulateDowncast.SEED]
+  [1] [Field misc.EncapsulateDowncast.random]
+  [1] [Field misc.EncapsulateDowncast.random2]
+Variable sets for misc.EncapsulateDowncast.showLastPerson(java.util.Vector list) exit
+  [1] [Parameter list]
+  [1] [List list[..]]
+  [1] [Class of list[..]]
+  [1] [Field misc.EncapsulateDowncast.CASES]
+  [1] [Field misc.EncapsulateDowncast.SEED]
+  [1] [Field misc.EncapsulateDowncast.random]
+  [1] [Field misc.EncapsulateDowncast.random2]
+
+Variable sets for misc.EncapsulateDowncast.main([Ljava.lang.String; argv) enter
+  [1] [Parameter argv]
+  [1] [Class of argv]
+  [1] [Array argv[..]]
+  [1] [String argv[..].toString]
+  [1] [Field misc.EncapsulateDowncast.CASES]
+  [1] [Field misc.EncapsulateDowncast.SEED]
+  [1] [Field misc.EncapsulateDowncast.random]
+  [1] [Field misc.EncapsulateDowncast.random2]
+Variable sets for misc.EncapsulateDowncast.main([Ljava.lang.String; argv) exit
+  [1] [Parameter argv]
+  [1] [Class of argv]
+  [1] [Array argv[..]]
+  [1] [String argv[..].toString]
+  [1] [Field misc.EncapsulateDowncast.CASES]
+  [1] [Field misc.EncapsulateDowncast.SEED]
+  [1] [Field misc.EncapsulateDowncast.random]
+  [1] [Field misc.EncapsulateDowncast.random2]
+
+Variable sets for misc.EncapsulateDowncast.equals(java.lang.Object obj) enter
+  [1] [Field misc.EncapsulateDowncast.CASES]
+  [1] [Field misc.EncapsulateDowncast.SEED]
+  [1] [Field misc.EncapsulateDowncast.random]
+  [1] [Field misc.EncapsulateDowncast.random2]
+  [1] [Parameter obj]
+  [1] [Class of obj]
+  [1] [this]
+Variable sets for misc.EncapsulateDowncast.equals(java.lang.Object obj) exit
+  [1] [Field misc.EncapsulateDowncast.CASES]
+  [1] [Field misc.EncapsulateDowncast.SEED]
+  [1] [Field misc.EncapsulateDowncast.random]
+  [1] [Field misc.EncapsulateDowncast.random2]
+  [1] [Parameter obj]
+  [1] [Class of obj]
+  [1] [return]
+  [1] [this]
+
+Variable sets for misc.Person.<init>(java.lang.String name, int height, int weight) enter
+  [1] [Parameter height]
+  [1] [Parameter name]
+  [1] [String name.toString]
+  [1] [Parameter weight]
+Variable sets for misc.Person.<init>(java.lang.String name, int height, int weight) exit
+  [2] [Parameter height, Field _height]
+  [2] [Parameter name, Field _name]
+  [1] [String name.toString]
+  [1] [this]
+  [1] [String Field _name.toString]
+  [2] [Field _weight, Parameter weight]
+
+Variable sets for misc.Person.getName() enter
+  [1] [this]
+  [1] [Field _height]
+  [1] [Field _name]
+  [1] [String Field _name.toString]
+  [1] [Field _weight]
+Variable sets for misc.Person.getName() exit
+  [1] [return]
+  [1] [String return.toString]
+  [1] [this]
+  [1] [Field _height]
+  [1] [Field _name]
+  [1] [String Field _name.toString]
+  [1] [Field _weight]
+
+Variable sets for misc.Person.equals(java.lang.Object obj) enter
+  [1] [Parameter obj]
+  [1] [Class of obj]
+  [1] [this]
+  [1] [Field _height]
+  [1] [Field _name]
+  [1] [String Field _name.toString]
+  [1] [Field _weight]
+Variable sets for misc.Person.equals(java.lang.Object obj) exit
+  [1] [Parameter obj]
+  [1] [Class of obj]
+  [1] [return]
+  [1] [this]
+  [1] [Field _height]
+  [1] [Field _name]
+  [1] [String Field _name.toString]
+  [1] [Field _weight]

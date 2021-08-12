@@ -1,0 +1,124 @@
+<!-- This file specifies what findbugs should exclude when checking. -->
+
+<!-- For documentation, see ~mernst/bin/src/findbugs/doc/manual/filter.html -->
+
+<FindBugsFilter>
+  <!-- Ignore libraries that are distributed with Daikon. -->
+  <Match classregex="org.apache.*" />
+  <Match classregex="jtb.*" />
+  <Match classregex="jtb.cparser.*" />
+  <Match classregex="junit.*" />
+  <Match class="daikon.gui.treeGUI.InvariantsGUI" />
+
+  <!-- Ignore certain violations:
+	EI[2] (expose internal representation)
+	LI (lazy update)
+	MS (store mutable argument into field)
+	SBSC (concatenate strings using + in a loop)
+  -->
+  <Match classregex=".*" >
+    <BugCode name="EI,EI2,LI,MS,SBSC" />
+  </Match>
+
+  <!-- Ignore all (for now) string equality violations -->
+  <Match classregex=".*" >
+    <BugCode name="ES" />
+  </Match>
+
+  <!-- The error message is not informative enough about what classes are involved -->
+  <Match classregex=".*" >
+    <BugPattern name="CD_CIRCULAR_DEPENDENCY" />
+  </Match>
+
+
+
+<!-- I should make the test for ES finer, like the below. -->
+<!-- Or, I could write a better ES checker that understands interning. -->
+     <!-- Match all doublecheck violations in these methods of "AnotherClass". -->
+<!--
+     <Match class="com.foobar.AnotherClass">
+       <Or>
+         <Method name="nonOverloadedMethod" />
+         <Method name="frob" params="int,java.lang.String" returns="void" />
+         <Method name="blat" params="" returns="boolean" />
+       </Or>
+       <BugCode name="DC" />
+     </Match>
+-->
+
+
+  <!-- Unused private methods (in generated code) -->
+  <Match class="daikon.Quant">
+    <Or>
+      <Method name="lte" params="char,char" returns="boolean" />
+      <Method name="lt" params="char,char" returns="boolean" />
+      <Method name="gte" params="char,char" returns="boolean" />
+      <Method name="gt" params="char,char" returns="boolean" />
+    </Or>
+    <BugCode name="UPM" />
+  </Match>
+
+  <!-- These uses are OK because they are used in testing code. -->
+  <Match class="utilMDE.TestUtilMDE$1InternTest">
+    <Method name="test" />
+    <BugCode name="Dm" />
+  </Match>
+  <Match class="utilMDE.TestUtilMDE">
+    <Method name="testInternObject" />
+    <BugCode name="Dm" />
+  </Match>
+
+  <!-- False positives (idioms not handled by FindBugs). -->
+  <Match class="utilMDE.UtilMDE$NullableStringComparator">
+    <Method name="compare" params="java.lang.Object,java.lang.Object" returns="int" />
+    <BugCode name="NP" />
+  </Match>
+
+  <Match class="daikon.suppress.NIS">
+    <Method name="merge_always_comparable" params="java.util.Map" returns="void" />
+    <BugPattern name="WMI_WRONG_MAP_ITERATOR" />
+  </Match>
+
+  <Match classregex=".*" >
+    <BugPattern name="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD"/>
+  </Match>
+
+  <Match class="utilMDE.UtilMDE" >
+    <Method name="count_lines" params="java.lang.String" returns="long"/>
+    <BugPattern name="RV_DONT_JUST_NULL_CHECK_READLINE"/>
+  </Match>
+
+  <Match class="daikon.Chicory" >
+    <BugPattern name="DM_EXIT"/>
+  </Match>
+
+  <Match class="daikon.diff.MatchCountVisitor" >
+    <Method name="acceptableNumber" params="java.lang.String" returns="boolean"/>
+    <BugPattern name="DLS_DEAD_LOCAL_STORE"/>
+  </Match>
+
+  <Match class="daikon.tools.runtimechecker.Mail">
+    <Method name="nonStaticMain"/>
+    <BugPattern name="DM_EXIT"/>
+  </Match>
+
+  <!-- This should be fixed. -->
+  <Match class="daikon.inv.binary.twoScalar.LinearBinaryCore">
+    <Method name="format_using"/>
+    <BugPattern name="DLS_DEAD_LOCAL_STORE"/>
+  </Match>
+
+  <!-- This should be fixed. -->
+  <Match class="daikon.inv.binary.twoScalar.LinearBinaryCoreFloat">
+    <Method name="format_using"/>
+    <BugPattern name="DLS_DEAD_LOCAL_STORE"/>
+  </Match>
+
+</FindBugsFilter>
+
+
+<!--
+Local Variables:
+auto-fill-function: nil
+End:
+-->

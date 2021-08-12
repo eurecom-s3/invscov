@@ -1,0 +1,43 @@
+How to compile Daikon from source.
+
+This README is intended for developers working with source cloned from
+Daikon's version control repository.
+
+1.  Choose the directory where you want to install Daikon; we'll call
+this the daikonparent directory.  In this directory, make a clone of
+Daikon's version control repository, named "daikon":
+
+git clone https://github.com/codespecs/daikon.git
+
+2.  Set your environment variables according to the instructions in 
+list item 2, of section 2.2.2 of the Daikon manual:
+http://plse.cs.washington.edu/daikon/download/doc/daikon.html#Unix_002fLinux_002fMacOSX-installation
+
+3.  Compile Daikon:
+
+cd $DAIKONDIR
+make compile
+
+4.  Build the documentation.
+
+make doc-all
+
+At this point you have local copies of the documentation, which
+may be more up-to-date than those on Daikon's webpage.
+
+If you plan to use Kvasir, the C/C++ front end for Daikon, then follow
+these additional steps:
+
+5.  Make a clone of Fjalar's version control repository, named "fjalar",
+as a sibling of the daikon clone.
+
+cd $DAIKONDIR
+cd ..
+git clone https://github.com/codespecs/fjalar.git
+
+6.  Build Fjalar (which includes Kvasir).  The following commands build
+the Fjalar/Kvasir shared library, install it locally, and make a symbolic
+link to it in your Daikon tree.
+
+cd $DAIKONDIR
+make kvasir
