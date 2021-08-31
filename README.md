@@ -2,8 +2,13 @@
 
 This prototype implements the idea described in our [USENIX Security '21 paper](https://www.usenix.org/conference/usenixsecurity21/presentation/fioraldi), a new feedback mechanism that
 augments code coverage by taking into account the usual
-values and relationships among program variables. For this
-purpose, we learn likely invariants over variables at the basic-
+values and relationships among program variables.
+
+<p>
+<a href="https://www.usenix.org/system/files/sec21-fioraldi.pdf"> <img align="right" width="200"  src="https://raw.githubusercontent.com/eurecom-s3/invscov/master/assets/paper_front_page.png"> </a>
+</p>
+
+For this purpose, we learn likely invariants over variables at the basic-
 block level, and partition the program state space accordingly.
 Our feedback can distinguish when an input violates one or
 more invariants and reward it, thus refining the program state
@@ -43,12 +48,51 @@ To compile Daikon, follow the steps in the Daikon readme and copy the resulting 
 ## Usage
 
 + set the env var `INVSCOV_OUTPUT_PATH` to an existing empty folder
-+ compile the PUT with InvsCov/dump-cc/c++
-+ run InvsCov/reconstruct-dump
-+ run InvsCov/learn-invariants with the dumper binary produced in the second step
-+ run InvsCov/generate-constraints
-+ compile with InvsCov/instrument-cc/c++
-+ fuzz this last binary with AFLplusplus/afl-fuzz
+
+```
+mkdir output_path
+export INVSCOV_OUTPUT_PATH=`pwd`/output_path/
+```
+
++ compile the PUT with dump-cc[c++]
+
+```
+cd target_program_src/
+./configure
+make CC=/path/to/invscov/InvsCov/dump-cc CXX=/path/to/invscov/InvsCov/dump-c++
+cp ./program ./program_dump # assuming that 'program' is the result of the compilation
+```
+
++ run reconstruct-dump
+
+```
+/path/to/invscov/InvsCov/reconstruct-dump
+```
+
++ run learn-invariants with the dumper binary produced in the second step
+
+```
+/path/to/invscov/InvsCov/learn-invariants /path/to/initial_corpus ./program_dump @@
+```
+
++ run generate-constraints
+
+```
+/path/to/invscov/InvsCov/generate-constraints
+```
+
++ compile with instrument-cc[c++]
+
+```
+make clean
+make CC=/path/to/invscov/InvsCov/instrument-cc CXX=/path/to/invscov/InvsCov/instrument-c++
+cp ./program ./program_fuzz
+```
++ fuzz this last binary with afl-fuzz
+
+```
+/path/to/invscov/AFLplusplus/afl-fuzz -i /path/to/initial_corpus -o output -d -- ./program_fuzz @@
+```
 
 ### License
 
