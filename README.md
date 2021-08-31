@@ -8,11 +8,20 @@ This prototype implements the idea described in our [USENIX Security '21 paper](
 augments code coverage by taking into account the usual
 values and relationships among program variables.
 
+One of the main limitations of coverage-guided fuzzing is the fact that most of
+the available solutions are optimized to reach different parts of the program
+under test, but struggle when reachability alone is insufficient
+to trigger a vulnerability. In reality, many bugs require
+a specific program state that involves not only the control
+flow, but also the values of some of the program variables.
+
 For this purpose, we learn likely invariants over variables at the basic-
 block level, and partition the program state space accordingly.
 Our feedback can distinguish when an input violates one or
 more invariants and reward it, thus refining the program state
 approximation that code coverage normally offers.
+
+This prototype, called InvsCov, is based on AFL++, LLVM and the Daikon invariant detector. 
 
 ## Cite
 
