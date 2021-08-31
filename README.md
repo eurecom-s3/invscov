@@ -1,12 +1,12 @@
 # The Use of Likely Invariants as Feedback for Fuzzers
 
-This prototype implements the idea described in our [USENIX Security '21 paper](https://www.usenix.org/conference/usenixsecurity21/presentation/fioraldi), a new feedback mechanism that
-augments code coverage by taking into account the usual
-values and relationships among program variables.
-
 <p>
 <a href="https://www.usenix.org/system/files/sec21-fioraldi.pdf"> <img align="right" width="200"  src="https://raw.githubusercontent.com/eurecom-s3/invscov/master/assets/paper_front_page.png"> </a>
 </p>
+
+This prototype implements the idea described in our [USENIX Security '21 paper](https://www.usenix.org/conference/usenixsecurity21/presentation/fioraldi), a new feedback mechanism that
+augments code coverage by taking into account the usual
+values and relationships among program variables.
 
 For this purpose, we learn likely invariants over variables at the basic-
 block level, and partition the program state space accordingly.
