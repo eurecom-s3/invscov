@@ -14,6 +14,10 @@ Our feedback can distinguish when an input violates one or
 more invariants and reward it, thus refining the program state
 approximation that code coverage normally offers.
 
+## Cite
+
++ Andrea Fioraldi, Daniele Cono D’Elia, and Davide Balzarotti. *The use of likely invariants as feedback for fuzzers*. In 30th USENIX Security Symposium (USENIX Security 21), pages 2829–2846. USENIX Association, August 2021.
+
 Bibtex:
 
 ```bibtex
