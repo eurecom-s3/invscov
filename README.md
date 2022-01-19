@@ -101,6 +101,9 @@ make clean
 make CC=/path/to/invscov/InvsCov/instrument-cc CXX=/path/to/invscov/InvsCov/instrument-c++
 cp ./program ./program_fuzz
 ```
+Using the `NO_CONSTRS=1` env var the instrument-cc compiler wrapper will simply compile the PUT with the classic AFL++ edge coverage instrumentation.
+Other env variables are available, refer to the [source code](https://github.com/eurecom-s3/invscov/blob/master/InvsCov/instrument/instrument_cc.py#L94).
+
 + fuzz this last binary with afl-fuzz
 
 ```
